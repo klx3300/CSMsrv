@@ -1,8 +1,8 @@
 #include <unordered_map>
-#include "unordered_map.h"
+#include "../unordered_map.h"
 #include <iostream>
 
-unsigned int hashf(void* key){
+unsigned int hashf(void* key,unsigned int size){
     return *((unsigned int*)key)%131;
 }
 

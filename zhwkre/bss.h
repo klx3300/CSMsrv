@@ -7,7 +7,7 @@ struct q__binary_safe_string{
     unsigned int capacity;
 };
 
-typedef q__binary_safe_string binary_safe_string;
+typedef struct q__binary_safe_string binary_safe_string;
 
 binary_safe_string qbss_new(); // create a binary_safe_string
 

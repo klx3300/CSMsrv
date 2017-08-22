@@ -8,8 +8,9 @@
 #define NO_IT_IS_NOT_A_LIST 0
 
 // one-key serialize a list
-struct q__ListDescriptor serialize(void* data,unsigned int len);
+struct q__ListDescriptor qSerialize(void* data,unsigned int len);
 
-void* unserialize(struct q__ListDescriptor dataset,int isList);
+// so unserialize it
+void* qUnserialize(struct q__ListDescriptor dataset,int isList);
 
 #endif

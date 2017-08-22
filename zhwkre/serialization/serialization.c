@@ -60,7 +60,7 @@ struct q__ListDescriptor q__list_serialize(struct q__ListDescriptor desc,binary_
     return rdesc;
 }
 
-struct q__ListDescriptor serialize(void* data,unsigned int len){
+struct q__ListDescriptor qSerialize(void* data,unsigned int len){
     if(q__List_islist(data,len)){
         return q__list_serialize(*((struct q__ListDescriptor*)data),qbss_new());
     }else{
@@ -116,8 +116,18 @@ struct q__ListDescriptor q__list_unserialize(struct q__ListDescriptor dataset,qM
             if(previous_data != NULL){
                 // i have little sisters. take them back.
                 qListDescriptor *tmpldrefr = (qListDescriptor*)tmpdata;
-                qListDescriptor *tmpsister = q__Map_ptr_at(previous_data,&tmpcnt,sizeof(unsigned int),uhashf)->value;
-                // or perhaps i am an orphan. that's ... not so bad
+                qListDescriptor *tmpsister = NULL;
+                if(prefix_num == 0){
+                    tmpsister = q__Map_ptr_at(previous_data,&tmpcnt,sizeof(unsigned int),uhashf)->value;
+                }else{
+                    // construct temporary combination
+                    binary_safe_string tmpsearcher = qbss_new();
+                    qbss_append(tmpsearcher,tmprefix.str,tmprefix.size);
+                    qbss_append(tmpsearcher,(char*)&tmpcnt,sizeof(tmpcnt));
+                    tmpsister = q__Map_ptr_at(previous_data,tmpsearcher.str,tmpsearcher.size,uhashf)->value;
+                    qbss_destructor(tmpsearcher);
+                }
+                    // or perhaps i am an orphan. that's ... not so bad
                 if(tmpsister != NULL){
                     tmpldrefr->head = tmpsister->head;
                     tmpldrefr->tail = tmpsister->tail;
@@ -144,6 +154,7 @@ struct q__ListDescriptor q__list_unserialize(struct q__ListDescriptor dataset,qM
                     q__Map_insert(&lists,tmprefix.str,&tmphouse,tmprefix.size,sizeof(qListDescriptor),uhashf);
                 }
             }
+            if(prefix_num == 0) q__List_push_back(&itemslist,tmpdata,tmpsize);
         }
         qbss_destructor(tmprefix);
     }
@@ -159,10 +170,11 @@ struct q__ListDescriptor q__list_unserialize(struct q__ListDescriptor dataset,qM
     return tmpretld;
 }
 
-void* unserialize(struct q__ListDescriptor dataset,int isList){
+void* qUnserialize(struct q__ListDescriptor dataset,int isList){
     if(isList){
         qListDescriptor *ld = malloc(sizeof(qListDescriptor));
-        (*ld) = q__list_unserialize(dataset,NULL);
+        qListDescriptor buffer = q__list_unserialize(dataset,NULL);
+        *ld = buffer;
         return ld;
     }else{
         binary_safe_string bss=qbss_new();

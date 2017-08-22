@@ -132,7 +132,13 @@ void q__List_destructor(void* descriptor){
 }
 
 int q__List_islist(void* descriptor,unsigned int size){
-    return (size >= sizeof(struct q__ListDescriptor)) && !(strncmp(((struct q__ListDescriptor*)(descriptor))->ldmagic,Q__LD_MAGIC,strlen(Q__LD_MAGIC)));
+    if(size < sizeof(struct q__ListDescriptor)){
+        return 0;
+    }
+    if(strncmp(((struct q__ListDescriptor*)(descriptor))->ldmagic,Q__LD_MAGIC,strlen(Q__LD_MAGIC))){
+        return 0;
+    }
+    return 1;
 }
 
 qListDescriptor q__List_copy(struct q__ListDescriptor *desc){

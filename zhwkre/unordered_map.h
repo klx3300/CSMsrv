@@ -13,7 +13,7 @@ typedef struct q__MapData{
 }qMapData;
 
 struct q__Map{
-    q__ListDescriptor* listArray;
+    qListDescriptor* listArray;
     unsigned int maxlength;
     unsigned int counts;
 };
