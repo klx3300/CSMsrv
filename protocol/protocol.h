@@ -149,6 +149,7 @@ struct q_AlterDataReply_st{
 // id=20
 struct q_AlterEntryOwnerQuery_st{
     unsigned int userId;
+    unsigned int destuid;
     unsigned int entryIds[3];
 };
 
@@ -160,18 +161,19 @@ struct q_AlterEntryOwnerReply_st{
 struct q_AlterEntryGroupQuery_st{
     unsigned int userId;
     unsigned int groupId;
+    unsigned int destgid;
     unsigned int entryIds[3];
 };
 
-struct q_ALterEntryGroupReply_st{
+struct q_AlterEntryGroupReply_st{
     unsigned int errNo;
 };
 
 // id=22
 struct q_AlterEntryPermissionQuery_st{
     unsigned int userId;
-    unsigned int entryIds[3];
     unsigned char permission;
+    unsigned int entryIds[3];
 };
 
 struct q_AlterEntryPermissionReply_st{
@@ -305,5 +307,23 @@ RemoveDataQuery qDisassembleRemoveDataQuery(binary_safe_string input);
 
 binary_safe_string qAssembleRemoveDataReply(unsigned int errNo);
 RemoveDataReply qDisassembleRemoveDataReply(binary_safe_string input);
+
+binary_safe_string qAssembleAlterEntryOwnerQuery(unsigned int uid,unsigned int destuid,unsigned int entryids[3]);
+AlterEntryOwnerQuery qDisassembleAlterEntryOwnerQuery(binary_safe_string input);
+
+binary_safe_string qAssembleAlterEntryOwnerReply(unsigned int errNo);
+AlterEntryOwnerReply qDisassembleAlterEntryOwnerReply(binary_safe_string input);
+
+binary_safe_string qAssembleAlterEntryGroupQuery(unsigned int uid,unsigned int gid,unsigned int destgid,unsigned int entryids[3]);
+AlterEntryGroupQuery qDisassembleAlterEntryGroupQuery(binary_safe_string input);
+
+binary_safe_string qAssembleAlterEntryGroupReply(unsigned int errNo);
+AlterEntryGroupReply qDisassembleAlterEntryGroupReply(binary_safe_string input);
+
+binary_safe_string qAssembleAlterEntryPermissionQuery(unsigned int uid,unsigned char perm,unsigned int entryids[3]);
+AlterEntryPermissionQuery qDisassembleAlterEntryPermissionQuery(binary_safe_string input);
+
+binary_safe_string qAssembleAlterEntryPermissionReply(unsigned int errNo);
+AlterEntryPermissionReply qDisassembleAlterEntryPermissionReply(binary_safe_string input);
 
 #endif
