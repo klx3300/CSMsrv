@@ -40,6 +40,7 @@ struct q_ListGroupQuery_st{
 };
 
 struct q_ListGroupReply_st{
+    unsigned int errNo;
     unsigned int datasize;
     // followed with serialized qList data
 };
@@ -74,6 +75,17 @@ struct q_RemoveGroupReply_st{
     unsigned int errNo;
 };
 
+// id=6
+struct q_ListUserQuery_st{
+    unsigned int uid;
+};
+
+struct q_ListUserReply_st{
+    unsigned int errNo;
+    unsigned int length;
+    // followed with serialized list fo user;
+};
+
 // ================= divide:permissionctl -- userdata =================
 
 // id=10
@@ -82,9 +94,15 @@ struct q_SyncDataQuery_st{
     unsigned int groupId;
 };
 
+struct q_SyncDataHelper_st{
+    unsigned int length;
+    // followed with the corresponding string.
+};
+
 struct q_SyncDataReply_st{
     unsigned int errNo;
-    // followed with 3*{unsigned int length;char data[length];}
+    unsigned int levels;
+    // followed with levels*{unsigned int length;char data[length];}
     // combine them and use unserialization to convert them to readable stuff;
 };
 
@@ -93,6 +111,7 @@ struct q_AppendDataQuery_st{
     unsigned int userId;
     unsigned int groupId;
     unsigned int entryIds[3]; // 0 means terminating.
+    unsigned int datalen;
     // follow with the corresponding data.
 };
 
@@ -186,8 +205,13 @@ typedef struct q_RemoveUserReply_st RemoveUserReply;
 typedef struct q_RemoveGroupQuery_st RemoveGroupQuery;
 // id=5
 typedef struct q_RemoveGroupReply_st RemoveGroupReply;
+// id=6
+typedef struct q_ListUserQuery_st ListUserQuery;
+// id=6
+typedef struct q_ListUserReply_st ListUserReply;
 // id=10
 typedef struct q_SyncDataQuery_st SyncDataQuery;
+typedef struct q_SyncDataHelper_st SyncDataHelper;
 // id=10
 typedef struct q_SyncDataReply_st SyncDataReply;
 // id=11
@@ -231,9 +255,55 @@ AlterPassReply qDisassembleAlterPassQuery(binary_safe_string bss);
 binary_safe_string qAssembleListGroupQuery(unsigned int uid);
 ListGroupQuery qDisassembleListGroupQuery(binary_safe_string input);
 
-binary_safe_string qAssembleListGroupReply(qListDescriptor grouplist);
+binary_safe_string qAssembleListGroupReply(unsigned int errno,qListDescriptor grouplist);
 qListDescriptor* qDisassembleListGroupReply(binary_safe_string input);
 
+binary_safe_string qAssembleAlterGroupQuery(unsigned int uid,unsigned int gid);
+AlterGroupQuery qDisassembleAlterGroupQuery(binary_safe_string input);
 
+binary_safe_string qAssembleAlterGroupReply(unsigned int errno);
+AlterGroupReply qDisassembleAlterGroupReply(binary_safe_string bss);
+
+binary_safe_string qAssembleRemoveUserQuery(unsigned int uid,unsigned int destuid);
+RemoveUserQuery qDisassembleRemoveUserQuery(binary_safe_string input);
+
+binary_safe_string qAssembleRemoveUserReply(unsigned int errno);
+RemoveUserReply qDisassembleRemoveUserReply(binary_safe_string input);
+
+binary_safe_string qAssembleRemoveGroupQuery(unsigned int uid,unsigned int gid);
+RemoveGroupQuery qDisassembleRemoveGroupQuery(binary_safe_string input);
+
+binary_safe_string qAssembleRemoveGroupReply(unsigned int errno);
+RemoveGroupReply qDisassembleRemoveGroupReply(binary_safe_string input);
+
+binary_safe_string qAssembleListUserQuery(unsigned int uid);
+ListUserQuery qDisassembleListUserQuery(binary_safe_string input);
+
+binary_safe_string qAssembleListUserReply(unsigned int errno,qListDescriptor userlist);
+qListDescriptor* qDisassembleListUserReply(binary_safe_string input);
+
+binary_safe_string qAssembleSyncDataQuery(unsigned int uid,unsigned int gid);
+SyncDataQuery qDisassembleSyncDataQuery(binary_safe_string input);
+
+binary_safe_string qAssembleSyncDataReply(unsigned int errNo,qListDescriptor ser_data);
+qListDescriptor qDisassembleSyncDataReply(binary_safe_string input);
+
+binary_safe_string qAssembleAppendDataQuery(unsigned int uid,unsigned int gid,unsigned int entryids[3],binary_safe_string data);
+AppendDataQuery *qDisassembleAppendDataQuery(binary_safe_string input);
+
+binary_safe_string qAssembleAppendDataReply(unsigned int errNo,unsigned int entryId);
+AppendDataReply qDisassembleAppendDataReply(binary_safe_string input);
+
+binary_safe_string qAssembleAlterDataQuery(unsigned int uid,unsigned int gid,unsigned int entryids[3],binary_safe_string data);
+AlterDataQuery *qDisassembleAlterDataQuery(binary_safe_string input);
+
+binary_safe_string qAssembleAlterDataReply(unsigned int errNo);
+AlterDataReply qDisassembleAlterDataReply(binary_safe_string input);
+
+binary_safe_string qAssembleRemoveDataQuery(unsigned int uid,unsigned int gid,unsigned int entryids[3]);
+RemoveDataQuery qDisassembleRemoveDataQuery(binary_safe_string input);
+
+binary_safe_string qAssembleRemoveDataReply(unsigned int errNo);
+RemoveDataReply qDisassembleRemoveDataReply(binary_safe_string input);
 
 #endif
