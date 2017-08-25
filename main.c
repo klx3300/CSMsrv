@@ -45,6 +45,16 @@ fprintf(stderr,"[WARN] Network error occurrred while writing to sockfd %d\n",(so
 #define LOCKGROUP grouplock.lock(grouplock)
 #define UNLOCKGROUP grouplock.unlock(grouplock)
 
+#define CHECKPRIV(testuid,flag) do{qList_foreach(*user,uiter){\
+    UserData *tmprefr = uiter->data;\
+    if(tmprefr->uid == (testuid)){\
+        if(tmprefr->gid == 0){\
+            flag = 1;\
+        }\
+        break;\
+    }\
+}}while(0)
+
 binary_safe_string fread2bss(FILE* f);
 
 void* handle_client(void* clisock_x);
@@ -389,7 +399,9 @@ void* handle_client(void* clisock_x){
                     NETWRCHECK(*clisock,qAssembleListGroupReply(0,*group));
                     UNLOCKGROUP;
                 }else{
+                    LOCKGROUP;
                     NETWRCHECK(*clisock,qAssembleListGroupReply(PERMISSION_DENIED,*group));
+                    UNLOCKGROUP;
                 }
             }
             break;
@@ -465,7 +477,41 @@ void* handle_client(void* clisock_x){
             break;
             case 5:
             {
-
+                RemoveGroupQuery q = qDisassembleRemoveGroupQuery(rcontent);
+                ui FLAG_SUCC = 0,FLAG_PRIV = 0;
+                LOCKUSER;
+                CHECKPRIV(q.userId,FLAG_PRIV);
+                UNLOCKUSER;
+                LOCKGROUP;
+                qList_foreach(*group,giter){
+                    GroupData *g=giter->data;
+                    if(g->gid == q.targetGroupId){
+                        if(FLAG_PRIV){
+                            FLAG_SUCC = 1;
+                            qList_erase_elem(*group,giter);
+                        }
+                    }
+                }
+                UNLOCKGROUP;
+                NETWRCHECK(*clisock,qAssembleRemoveGroupReply(FLAG_SUCC?0:(FLAG_PRIV?GROUP_NOT_EXIST:PERMISSION_DENIED)));
+            }
+            break;
+            case 6:
+            {
+                ListUserQuery q = qDisassembleListUserQuery(rcontent);
+                ui FLAG_SUCC = 0;
+                LOCKUSER;
+                CHECKPRIV(q.uid,FLAG_SUCC);
+                UNLOCKUSER;
+                if(FLAG_SUCC){
+                    LOCKUSER;
+                    NETWRCHECK(*clisock,qAssembleListUserReply(0,*user));
+                    UNLOCKUSER;
+                }else{
+                    LOCKUSER;
+                    NETWRCHECK(*clisock,qAssembleListUserReply(PERMISSION_DENIED,*user));
+                    UNLOCKUSER;
+                }
             }
             break;
         }
