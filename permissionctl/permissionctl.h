@@ -1,9 +1,9 @@
 #ifndef Q_CDES_PERMISSION_H
 #define Q_CDES_PERMISSION_H
 
-#define Q_PERMISSION_C (4)
-#define Q_PERMISSION_R (2)
-#define Q_PERMISSION_W (1)
+#define Q_PERMISSION_C ((unsigned char)4)
+#define Q_PERMISSION_R ((unsigned char)2)
+#define Q_PERMISSION_W ((unsigned char)1)
 
 struct q_UserData_st{
     unsigned int uid;

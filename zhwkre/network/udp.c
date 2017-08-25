@@ -1,5 +1,4 @@
 #include "../network.h"
-#include "../debug.h"
 #include "../utils.h"
 
 #include <string.h>
@@ -7,7 +6,9 @@
 #include <unistd.h>
 
 int qDatagramSocket_receive(qSocket sock,char* srcaddr,char* buffer,unsigned int size,int flags){
-    qAssert(sock.domain == AF_INET);
+    if(sock.domain != AF_INET){
+        return -1;
+    }
     memset(buffer,0,size);
     struct sockaddr_in srcaddr_in;
     memset(&srcaddr_in,0,sizeof(srcaddr_in));
@@ -20,7 +21,9 @@ int qDatagramSocket_receive(qSocket sock,char* srcaddr,char* buffer,unsigned int
 }
 
 int qDatagramSocket_send(qSocket sock,const char* dest,const char* payload,unsigned int size,int flags){
-    qAssert(sock.domain == AF_INET);
+    if(sock.domain == AF_INET){
+        return -1;
+    }
     int separator_pos = find_byte(dest,':',strlen(dest));
     struct sockaddr_in dest_addr;
     memset(&dest_addr,0,sizeof(dest_addr));

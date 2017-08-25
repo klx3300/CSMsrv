@@ -1,5 +1,4 @@
 #include "../network.h"
-#include "../debug.h"
 #include "../utils.h"
 #include <string.h>
 #include <stdio.h>
@@ -31,20 +30,24 @@ qSocket qSocket_constructor(int domain,int type,int protocol){
     return tmpsock;
 }
 
-void qSocket__open(qSocket* sock){
+int qSocket__open(qSocket* sock){
     sock->desc = socket(sock->domain,sock->type,sock->protocol);
-    qAssert(sock->desc != -1);
+    return (sock->desc)!=-1;
 }
 
 
 // bind to address like ":80" means wildcard address with 80 port.
-void qSocket_bind(qSocket sock,const char* addrxport){
-    qAssert(sock.domain == qIPv4);
+int qSocket_bind(qSocket sock,const char* addrxport){
+    if(sock.domain != qIPv4){
+        return 0;
+    }
     struct sockaddr_in addr;
     memset(&addr,0,sizeof(addr));
     addr.sin_family = qIPv4;
     int separator_pos = find_byte(addrxport,':',strlen(addrxport));
-    qAssert(separator_pos != -1);
+    if(separator_pos == -1){
+        return 0;
+    }
     addr.sin_addr.s_addr=htonl(INADDR_ANY);
     char portstr[10];
     memset(portstr,0,sizeof(portstr));
@@ -56,14 +59,15 @@ void qSocket_bind(qSocket sock,const char* addrxport){
         addr.sin_addr = str_to_ipv4addr(addrxport);
     }
     int bindstat = bind(sock.desc,(struct sockaddr*)&addr,sizeof(struct sockaddr_in));
-    qAssert(bindstat != -1);
+    return (bindstat != -1);
 }
 
-void qSocket__close(qSocket* sock){
-    qAssert(close(sock->desc)!=-1);
+int qSocket__close(qSocket* sock){
+    int retv = (close(sock->desc)!=-1);
     sock->desc = -1;
+    return retv;
 }
 
-void qSocket__destructor(qSocket* sock){
-    qSocket__close(sock);
+int qSocket__destructor(qSocket* sock){
+    return qSocket__close(sock);
 }

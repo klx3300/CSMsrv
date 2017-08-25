@@ -11,6 +11,7 @@ struct q_UniversalHeader_st{
 
 // id=0
 struct q_LoginQuery_st{
+    unsigned int isRegister;
     unsigned int username_len;
     char username[256];
     unsigned int password_len;
@@ -48,6 +49,7 @@ struct q_ListGroupReply_st{
 // id=3
 struct q_AlterGroupQuery_st{
     unsigned int userId;
+    unsigned int destuid;
     unsigned int groupId;
 };
 
@@ -85,6 +87,7 @@ struct q_ListUserReply_st{
     unsigned int length;
     // followed with serialized list fo user;
 };
+
 
 // ================= divide:permissionctl -- userdata =================
 
@@ -180,6 +183,13 @@ struct q_AlterEntryPermissionReply_st{
     unsigned int errNo;
 };
 
+// ================ divide: serverctl ==========================
+
+// id=30
+struct q_StopServerQuery_st{
+    char adminpass[256];
+};
+
 // ================ divide: definition =========================
 
 typedef struct q_UniversalHeader_st UniversalHeader;
@@ -241,18 +251,24 @@ typedef struct q_AlterEntryPermissionQuery_st AlterEntryPermissionQuery;
 // id=22
 typedef struct q_AlterEntryPermissionReply_st AlterEntryPermissionReply;
 
+// id=30
+typedef struct q_StopServerQuery_st StopServerQuery;
+
 // ========================divide: useful functions=====================
 
 // all disassemble function not include the UniversalHeader
 
-binary_safe_string qAssembleLoginQuery(binary_safe_string username,binary_safe_string password);
+binary_safe_string qAssembleLoginQuery(unsigned int isRegister,binary_safe_string username,binary_safe_string password);
 LoginQuery qDisassembleLoginQuery(binary_safe_string input);
 
 binary_safe_string qAssembleLoginReply(unsigned int errNo,unsigned int userId,unsigned int groupId);
 LoginReply qDisassembleLoginReply(binary_safe_string input);
 
 binary_safe_string qAssembleAlterPassQuery(unsigned int uid,unsigned int passlen,binary_safe_string password);
-AlterPassReply qDisassembleAlterPassQuery(binary_safe_string bss);
+AlterPassQuery qDisassembleAlterPassQuery(binary_safe_string bss);
+
+binary_safe_string qAssembleAlterPassReply(unsigned int errNo);
+AlterPassReply qDisassembleAlterPassReply(binary_safe_string input);
 
 binary_safe_string qAssembleListGroupQuery(unsigned int uid);
 ListGroupQuery qDisassembleListGroupQuery(binary_safe_string input);
@@ -260,7 +276,7 @@ ListGroupQuery qDisassembleListGroupQuery(binary_safe_string input);
 binary_safe_string qAssembleListGroupReply(unsigned int errno,qListDescriptor grouplist);
 qListDescriptor* qDisassembleListGroupReply(binary_safe_string input);
 
-binary_safe_string qAssembleAlterGroupQuery(unsigned int uid,unsigned int gid);
+binary_safe_string qAssembleAlterGroupQuery(unsigned int uid,unsigned int destuid,unsigned int gid);
 AlterGroupQuery qDisassembleAlterGroupQuery(binary_safe_string input);
 
 binary_safe_string qAssembleAlterGroupReply(unsigned int errno);
@@ -325,5 +341,8 @@ AlterEntryPermissionQuery qDisassembleAlterEntryPermissionQuery(binary_safe_stri
 
 binary_safe_string qAssembleAlterEntryPermissionReply(unsigned int errNo);
 AlterEntryPermissionReply qDisassembleAlterEntryPermissionReply(binary_safe_string input);
+
+binary_safe_string qAssembleStopServerQuery(binary_safe_string adminpsk);
+StopServerQuery qDisassembleStopServerQuery(binary_safe_string input);
 
 #endif

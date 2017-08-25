@@ -1,18 +1,21 @@
 #include "../network.h"
-#include "../debug.h"
 #include "../utils.h"
 
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
 
-void qStreamSocket_connect(qSocket sock,const char* addrxport){
-    qAssert(sock.domain == qIPv4);
+int qStreamSocket_connect(qSocket sock,const char* addrxport){
+    if(sock.domain != qIPv4){
+        return 0;
+    }
     struct sockaddr_in addr;
     memset(&addr,0,sizeof(addr));
     addr.sin_family = qIPv4;
     int separator_pos = find_byte(addrxport,':',strlen(addrxport));
-    qAssert(separator_pos != -1);
+    if(separator_pos == -1){
+        return 0;
+    }
     addr.sin_addr.s_addr=htonl(INADDR_ANY);
     char portstr[10];
     memset(portstr,0,sizeof(portstr));
@@ -24,11 +27,11 @@ void qStreamSocket_connect(qSocket sock,const char* addrxport){
         addr.sin_addr = str_to_ipv4addr(addrxport);
     }
     int connstat = connect(sock.desc,(struct sockaddr*)&addr,sizeof(struct sockaddr_in));
-    qAssert(connstat != -1);
+    return (connstat != -1);
 }
 
-void qStreamSocket_listen(qSocket sock){
-    qAssert(listen(sock.desc,128)); // 128:limitation of undecided connections.
+int qStreamSocket_listen(qSocket sock){
+    return (listen(sock.desc,128)!=-1); // 128:limitation of undecided connections.
 }
 
 
@@ -39,11 +42,9 @@ qSocket qStreamSocket_accept(qSocket sock,char* srcaddr){
     srcinfo.protocol = sock.protocol;
     srcinfo.type = sock.type;
     srcinfo.quickack = sock.quickack;
-    qAssert(sock.domain == AF_INET);
     struct sockaddr_in srcaddr_in;
     socklen_t srcaddr_len = sizeof(srcaddr_in);
     srcinfo.desc = accept(sock.desc,(struct sockaddr*)&srcaddr_in,&srcaddr_len);
-    qAssert(srcinfo.desc != -1);
     memset(srcaddr,0,26);
     strcpy(srcaddr,inet_ntoa(srcaddr_in.sin_addr));
     sprintf(srcaddr+strlen(inet_ntoa(srcaddr_in.sin_addr)),":%d",ntohs(srcaddr_in.sin_port));

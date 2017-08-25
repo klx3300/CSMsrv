@@ -1,0 +1,9 @@
+#ifndef Q_CDES_ERRNO_H
+#define Q_CDES_ERRNO_H
+
+#define LOGIN_INCORRECT 1
+#define USER_NOT_EXIST 2
+#define PERMISSION_DENIED 3
+#define GROUP_NOT_EXIST 4
+
+#endif

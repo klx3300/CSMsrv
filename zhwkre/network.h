@@ -30,16 +30,16 @@ struct in_addr str_to_ipv4addr(const char* addrxport);
 // generic for all socks
 qSocket qSocket_constructor(int domain,int type,int protocol);
 #define qSocket_open(sock) qSocket__open(&sock)
-void qSocket__open(qSocket* sock);
-void qSocket_bind(qSocket sock,const char* addr);
+int qSocket__open(qSocket* sock);
+int qSocket_bind(qSocket sock,const char* addr);
 #define qSocket_close(sock) qSocket__close(&sock)
-void qSocket__close(qSocket* sock);
+int qSocket__close(qSocket* sock);
 #define qSocket_destructor(sock) qSocket__destructor(&sock)
-void qSocket__destructor(qSocket* scok);
+int qSocket__destructor(qSocket* scok);
 
 // stream sockets (tcp)
-void qStreamSocket_connect(qSocket sock,const char* addrxport);
-void qStreamSocket_listen(qSocket sock);
+int qStreamSocket_connect(qSocket sock,const char* addrxport);
+int qStreamSocket_listen(qSocket sock);
 qSocket qStreamSocket_accept(qSocket sock,char* srcaddr);
 //void qStreamSocket__sendbeat(qSocket sock);
 //void qStreamSocket__acceptbeat(qSocket sock);

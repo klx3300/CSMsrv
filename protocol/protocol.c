@@ -12,7 +12,7 @@
 // append data to bss,auto sizeof and pointercast
 #define BSSAPP(bss,cont) qbss_append((bss),(char*)(&cont),sizeof(cont))
 
-binary_safe_string qAssembleLoginQuery(binary_safe_string username,binary_safe_string password){
+binary_safe_string qAssembleLoginQuery(unsigned int isRegister,binary_safe_string username,binary_safe_string password){
     binary_safe_string bss=qbss_new();
     if(username.size > 256 || password.size > 256){
         return bss;// failed.
@@ -20,6 +20,7 @@ binary_safe_string qAssembleLoginQuery(binary_safe_string username,binary_safe_s
     // construct universalHeader
     UHEADERINIT(0,LoginQuery);
     LoginQuery lq;
+    lq.isRegister = isRegister;
     lq.username_len = username.size;
     BSSSET(lq.username,username);
     lq.password_len = password.size;
@@ -69,10 +70,26 @@ binary_safe_string qAssembleAlterPassQuery(unsigned int uid,unsigned int passlen
     return bss;
 }
 
-AlterPassReply qDisassembleAlterPassQuery(binary_safe_string bss){
-    AlterPassReply apr;
+AlterPassQuery qDisassembleAlterPassQuery(binary_safe_string bss){
+    AlterPassQuery apr;
     MEMCPYINIT(apr,bss);
     return apr;
+}
+
+binary_safe_string qAssembleAlterPassReply(unsigned int errNo){
+    binary_safe_string bss=qbss_new();
+    UHEADERINIT(1,AlterPassReply);
+    AlterPassReply adr;
+    adr.errNo = errNo;
+    BSSAPP(bss,hd);
+    BSSAPP(bss,adr);
+    return bss;
+}
+
+AlterPassReply qDisassembleAlterPassReply(binary_safe_string input){
+    AlterPassReply adr;
+    MEMCPYINIT(adr,input);
+    return adr;
 }
 
 binary_safe_string qAssembleListGroupQuery(unsigned int uid){
@@ -126,11 +143,12 @@ qListDescriptor* qDisassembleListGroupReply(binary_safe_string input){
     return tmpdesc;
 }
 
-binary_safe_string qAssembleAlterGroupQuery(unsigned int uid,unsigned int gid){
+binary_safe_string qAssembleAlterGroupQuery(unsigned int uid,unsigned int destuid,unsigned int gid){
     binary_safe_string bss=qbss_new();
     UHEADERINIT(3,AlterGroupQuery);
     AlterGroupQuery agq;
     agq.userId = uid;
+    agq.destuid = destuid;
     agq.groupId = gid;
     BSSAPP(bss,hd);
     BSSAPP(bss,agq);
@@ -557,4 +575,25 @@ AlterEntryPermissionReply qDisassembleAlterEntryPermissionReply(binary_safe_stri
     AlterEntryPermissionReply adr;
     MEMCPYINIT(adr,input);
     return adr;
+}
+
+binary_safe_string qAssembleStopServerQuery(binary_safe_string adminpsk){
+    binary_safe_string bss=qbss_new();
+    if(adminpsk.size > 256){
+        return bss;// failed.
+    }
+    // construct universalHeader
+    UHEADERINIT(30,StopServerQuery);
+    StopServerQuery lq;
+    BSSSET(lq.adminpass,adminpsk);
+    BSSAPP(bss,hd);
+    BSSAPP(bss,lq);
+    return bss;
+}
+
+// not include the UniversalHeader
+StopServerQuery qDisassembleStopServerQuery(binary_safe_string input){
+    StopServerQuery lq;
+    MEMCPYINIT(lq,input);
+    return lq;
 }

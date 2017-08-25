@@ -34,4 +34,8 @@ typedef struct q_SellInfo_st Level2;
 typedef struct q_PaymentRecord_st Level3;
 typedef struct q_CarType_st Level1;
 
+#define DEFAULT_ADMIN_USERNAME "admin"
+#define DEFAULT_ADMIN_PASSWORD "p@ssw0rd"
+#define DEFAULT_ADMIN_GROUPNAME "administrators"
+
 #endif
