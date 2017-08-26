@@ -6,13 +6,13 @@
 #include <linux/tcp.h>
 #include <time.h>
 
-const int qStreamSocket = SOCK_STREAM;
-const int qDatagramSocket = SOCK_DGRAM;
-const int qDefaultProto = 0;
-const int qDatagramSocketDefaultFlag = 0;
-const int qUnixDomain = AF_UNIX;
-const int qIPv4 = AF_INET;
-const int qIPv6 = AF_INET6;
+#define qStreamSocket SOCK_STREAM
+#define  qDatagramSocket SOCK_DGRAM
+#define qDefaultProto 0
+#define qDatagramSocketDefaultFlag 0
+#define qUnixDomain AF_UNIX
+#define qIPv4 AF_INET
+#define qIPv6 AF_INET6
 
 struct q__Socket{
     int desc;
