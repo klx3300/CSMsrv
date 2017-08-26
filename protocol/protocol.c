@@ -477,11 +477,12 @@ RemoveDataReply qDisassembleRemoveDataReply(binary_safe_string input){
     return adr;
 }
 
-binary_safe_string qAssembleAlterEntryOwnerQuery(unsigned int uid,unsigned int destuid,unsigned int entryLvl,unsigned int entryids[3]){
+binary_safe_string qAssembleAlterEntryOwnerQuery(unsigned int uid,unsigned int gid,unsigned int destuid,unsigned int entryLvl,unsigned int entryids[3]){
     binary_safe_string bss = qbss_new();
     UHEADERINIT(20,AlterEntryOwnerQuery);
     AlterEntryOwnerQuery adq;
     adq.userId = uid;
+    adq.groupId = gid;
     adq.destuid = destuid;
     adq.entryLvl = entryLvl;
     memcpy(adq.entryIds,entryids,3*sizeof(unsigned int));
@@ -548,12 +549,13 @@ AlterEntryGroupReply qDisassembleAlterEntryGroupReply(binary_safe_string input){
     return adr;
 }
 
-binary_safe_string qAssembleAlterEntryPermissionQuery(unsigned int uid,unsigned char perm,unsigned int entryLvl,unsigned int entryids[3]){
+binary_safe_string qAssembleAlterEntryPermissionQuery(unsigned int uid,unsigned int gid,unsigned char perm[3],unsigned int entryLvl,unsigned int entryids[3]){
     binary_safe_string bss = qbss_new();
     UHEADERINIT(22,AlterEntryPermissionQuery);
     AlterEntryPermissionQuery adq;
     adq.userId = uid;
-    adq.permission = perm;
+    adq.groupid = gid;
+    memcpy(adq.permission,perm,3*sizeof(unsigned char));
     adq.entryLvl = entryLvl;
     memcpy(adq.entryIds,entryids,3*sizeof(unsigned int));
     BSSAPP(bss,hd);

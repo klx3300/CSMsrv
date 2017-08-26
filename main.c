@@ -15,6 +15,7 @@
 #include <string.h>
 
 #define STRMASK "PROTECTED"
+#define SHUTDOWN_PASSPHRASE "EMERGENCY_ZHWK_SERVER_SHUTDOWN"
 
 typedef unsigned int ui;
 qListDescriptor *data=NULL,*user=NULL,*group=NULL;
@@ -339,11 +340,14 @@ int main(int argc,char** argv){
 void* handle_client(void* clisock_x){
     qSocket* clisock = clisock_x;
     // read quest
-    while(true){
+    ui FLAG_CONT = 1;
+    while(FLAG_CONT){
         ui queryid=0;
         binary_safe_string rcontent = qNetwork_readbss(*clisock,&queryid);
         if(rcontent.size == 0){
             fprintf(stderr,"[INFO] Conn ended with client with fd %d\n",clisock->desc);
+            qSocket_close(*clisock);
+            FLAG_CONT = 0;
         }
         switch(queryid){
             case 0:
@@ -836,8 +840,174 @@ void* handle_client(void* clisock_x){
                 NETWRCHECK(*clisock,qAssembleAlterDataReply(FLAG_SUCC?0:ALTER_FAIL));
             }
             break;
+            case 20:
+            {
+                AlterEntryOwnerQuery q = qDisassembleAlterEntryOwnerQuery(rcontent);
+                ui FLAG_PRIV = 0,FLAG_SUCC = 0,tmpid = 0;
+                LOCKUSER;
+                CHECKPRIV(q.userId,FLAG_PRIV);
+                UNLOCKUSER;
+                LOCKDATA;
+                qList_foreach(*data,iter){
+                    Level1Entry *le = iter->data;
+                    if(le->pe.entryid == q.entryIds[0]){
+                        // found
+                        if(q.entryLvl == 0 ){
+                            if((checkperm(le->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                le->pe.ownerid = q.destuid;
+                                FLAG_SUCC = 1;
+                            }
+                        }else if((checkperm(le->pe,q.userId,q.groupId) & Q_PERMISSION_R) || FLAG_PRIV){
+                            qList_foreach(le->ld,iiter){
+                                Level2Entry *lle = iiter->data;
+                                if(lle->pe.entryid == q.entryIds[1]){
+                                    if(q.entryLvl == 2){
+                                        if((checkperm(lle->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                            lle->pe.ownerid = q.destuid;
+                                            FLAG_SUCC = 1;
+                                        }
+                                    }else if((checkperm(lle->pe,q.userId,q.groupId)&Q_PERMISSION_R)||FLAG_PRIV){
+                                        qList_foreach(lle->ld,iiiter){
+                                            Level3Entry *llle = iiiter->data;
+                                            if(llle->pe.entryid == q.entryIds[2]){
+                                                if((checkperm(llle->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                                    llle->pe.ownerid = q.destuid;
+                                                    FLAG_SUCC = 1;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+                UNLOCKDATA;
+                NETWRCHECK(*clisock,qAssembleAlterEntryOwnerReply(FLAG_SUCC?0:PERMISSION_DENIED));
+            }
+            break;
+            case 21:
+            {
+                AlterEntryGroupQuery q = qDisassembleAlterEntryGroupQuery(rcontent);
+                ui FLAG_PRIV = 0,FLAG_SUCC = 0,tmpid = 0;
+                LOCKUSER;
+                CHECKPRIV(q.userId,FLAG_PRIV);
+                UNLOCKUSER;
+                LOCKDATA;
+                qList_foreach(*data,iter){
+                    Level1Entry *le = iter->data;
+                    if(le->pe.entryid == q.entryIds[0]){
+                        // found
+                        if(q.entryLvl == 0 ){
+                            if((checkperm(le->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                le->pe.groupid = q.destgid;
+                                FLAG_SUCC = 1;
+                            }
+                        }else if((checkperm(le->pe,q.userId,q.groupId) & Q_PERMISSION_R) || FLAG_PRIV){
+                            qList_foreach(le->ld,iiter){
+                                Level2Entry *lle = iiter->data;
+                                if(lle->pe.entryid == q.entryIds[1]){
+                                    if(q.entryLvl == 2){
+                                        if((checkperm(lle->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                            lle->pe.groupid = q.destgid;
+                                            FLAG_SUCC = 1;
+                                        }
+                                    }else if((checkperm(lle->pe,q.userId,q.groupId)&Q_PERMISSION_R)||FLAG_PRIV){
+                                        qList_foreach(lle->ld,iiiter){
+                                            Level3Entry *llle = iiiter->data;
+                                            if(llle->pe.entryid == q.entryIds[2]){
+                                                if((checkperm(llle->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                                    llle->pe.groupid = q.destgid;
+                                                    FLAG_SUCC = 1;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+                UNLOCKDATA;
+                NETWRCHECK(*clisock,qAssembleAlterEntryGroupReply(FLAG_SUCC?0:PERMISSION_DENIED));
+            }
+            break;
+            case 22:
+            {
+                AlterEntryPermissionQuery q = qDisassembleAlterEntryPermissionQuery(rcontent);
+                ui FLAG_PRIV = 0,FLAG_SUCC = 0,tmpid = 0;
+                LOCKUSER;
+                CHECKPRIV(q.userId,FLAG_PRIV);
+                UNLOCKUSER;
+                LOCKDATA;
+                qList_foreach(*data,iter){
+                    Level1Entry *le = iter->data;
+                    if(le->pe.entryid == q.entryIds[0]){
+                        // found
+                        if(q.entryLvl == 0 ){
+                            if((checkperm(le->pe,q.userId,q.groupid) & Q_PERMISSION_W) || FLAG_PRIV){
+                                memcpy(le->pe.permission,q.permission,permsize);
+                                FLAG_SUCC = 1;
+                            }
+                        }else if((checkperm(le->pe,q.userId,q.groupid) & Q_PERMISSION_R) || FLAG_PRIV){
+                            qList_foreach(le->ld,iiter){
+                                Level2Entry *lle = iiter->data;
+                                if(lle->pe.entryid == q.entryIds[1]){
+                                    if(q.entryLvl == 2){
+                                        if((checkperm(lle->pe,q.userId,q.groupid) & Q_PERMISSION_W) || FLAG_PRIV){
+                                            memcpy(le->pe.permission,q.permission,permsize);
+                                            FLAG_SUCC = 1;
+                                        }
+                                    }else if((checkperm(lle->pe,q.userId,q.groupid)&Q_PERMISSION_R)||FLAG_PRIV){
+                                        qList_foreach(lle->ld,iiiter){
+                                            Level3Entry *llle = iiiter->data;
+                                            if(llle->pe.entryid == q.entryIds[2]){
+                                                if((checkperm(llle->pe,q.userId,q.groupid) & Q_PERMISSION_W) || FLAG_PRIV){
+                                                    memcpy(le->pe.permission,q.permission,permsize);
+                                                    FLAG_SUCC = 1;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+                UNLOCKDATA;
+                NETWRCHECK(*clisock,qAssembleAlterEntryPermissionReply(FLAG_SUCC?0:PERMISSION_DENIED));
+            }
+            break;
+            case 30:
+            {
+                StopServerQuery q = qDisassembleStopServerQuery(rcontent);
+                if(fullstrcmp(q.adminpass,SHUTDOWN_PASSPHRASE)){
+                    fprintf(stderr,"[SHUT] Connection %d successfully inited server shutting down process.\n",clisock->desc);
+                    qSocket_close(*clisock);
+                    FLAG_CONT = 0;
+                }
+            }
+            break;
+            default:
+            fprintf(stderr,"[WARN] Invalid input from conn %u. Force closing conn..\n",clisock->desc);
+            qSocket_close(*clisock);
+            FLAG_CONT = 0;
+            break;
         }
     }
+    connclock.lock(connclock);
+    cliconns --;
+    connclock.unlock(connclock);
+    return NULL;
 }
 
 binary_safe_string fread2bss(FILE* f){
