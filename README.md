@@ -16,7 +16,8 @@ criteria specified in instruction book.
 
 ## Makedepend
 
-- imgui & cimgui -- for client GUI. git clone --recursive should work.
+- imgui -- for client GUI. git clone --recursive should work.
+- glfw version 3 -- for the imgui backend.
 - Linux/Unix environment -- for networking and concurrent.
 - gcc 7.1.1(20170528) or 7.1.1-3
 - g++ the same version with gcc. for compiling imgui and cimgui.
