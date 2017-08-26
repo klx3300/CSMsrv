@@ -14,10 +14,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define STRMASK "PROTECTED"
+
 typedef unsigned int ui;
 qListDescriptor *data=NULL,*user=NULL,*group=NULL;
 qMutex datalock,userlock,grouplock,connclock;
 qMap lv1ids,lv2ids,lv3ids,userids,groupids;
+Level1 lv1mask;Level2 lv2mask;Level3 lv3mask;ui strmasklen;
+#define MASKSTR(str) memcpy((str),STRMASK,strmasklen)
 ui uhashf(void* t,ui size){
     ui sum=0;
     for(ui i=0;i<size;i++){
@@ -28,6 +32,9 @@ ui uhashf(void* t,ui size){
 }
 ui RUNNING=1;
 ui cliconns = 0;
+
+unsigned char umask[3] = {(Q_PERMISSION_C|Q_PERMISSION_R|Q_PERMISSION_W),(Q_PERMISSION_C|Q_PERMISSION_R),(Q_PERMISSION_C)};
+ui permsize = 3*sizeof(unsigned char);
 
 #define mapinsert(map,key,value) qMap_insert(map,key,value,uhashf)
 #define maperase(map,key) qMap_erase(map,key,uhashf)
@@ -54,6 +61,14 @@ fprintf(stderr,"[WARN] Network error occurrred while writing to sockfd %d\n",(so
         break;\
     }\
 }}while(0)
+
+#define ALLOCID(idvar,idmap,succflag) do{\
+    for((idvar)=0;(idvar)<100000000;(idvar)++){\
+        if(mapseek((idmap),(idvar))==NULL){\
+            (succflag) = 1;\
+            break;\
+        }\
+    }}while(0)
 
 binary_safe_string fread2bss(FILE* f);
 
@@ -191,6 +206,17 @@ int main(int argc,char** argv){
             UserData *u = iter->data;
             mapinsert(userids,u->uid,tmpyes);
         }
+    }
+    // init masks
+    {
+        strmasklen = strlen(STRMASK);
+        memset(&lv1mask,0,sizeof(lv1mask));
+        MASKSTR(lv1mask.carId);MASKSTR(lv1mask.carName);
+        memset(&lv2mask,0,sizeof(lv2mask));
+        MASKSTR(lv2mask.carId);MASKSTR(lv2mask.carName);MASKSTR(lv2mask.customerId);
+        MASKSTR(lv2mask.selldate);MASKSTR(lv2mask.customerName);MASKSTR(lv2mask.customerTel);
+        memset(&lv3mask,0,sizeof(lv3mask));
+        MASKSTR(lv3mask.carId);MASKSTR(lv3mask.paydate);MASKSTR(lv3mask.sellerId);
     }
     // init mutexes
     {
@@ -341,12 +367,7 @@ void* handle_client(void* clisock_x){
                     memcpy(tmpud.password,lq.password,lq.password_len+1);
                     tmpud.gid = 1; // assemble a not-so-correct gid.
                     ui checkuid = 0;
-                    for(checkuid=0;checkuid<100000000;checkuid++){
-                        if(mapseek(userids,checkuid)==NULL){
-                            FLAG_SUCC = 1;
-                            break;
-                        }
-                    }
+                    ALLOCID(checkuid,userids,FLAG_SUCC);
                     if(FLAG_SUCC){
                         tmpud.uid = checkuid;
                         qList_push_back(*user,tmpud);
@@ -512,6 +533,307 @@ void* handle_client(void* clisock_x){
                     NETWRCHECK(*clisock,qAssembleListUserReply(PERMISSION_DENIED,*user));
                     UNLOCKUSER;
                 }
+            }
+            break;
+            case 10:
+            {
+                SyncDataQuery q = qDisassembleSyncDataQuery(rcontent);
+                // checkpriv
+                ui FLAG_PRIV=0;
+                LOCKUSER;
+                CHECKPRIV(q.userId,FLAG_PRIV);
+                UNLOCKUSER;
+                LOCKDATA;
+                qListDescriptor tmprld;
+                qList_initdesc(tmprld);
+                qList_foreach(*data,iter){
+                    Level1Entry *le = iter->data;
+                    Level1Entry tmple;
+                    ui FLAG_I_RECURSIVE = 0,FLAG_I_SUCC = 0;
+                    if(le->pe.ownerid == q.userId || FLAG_PRIV){
+                        // full permission
+                        qList_initdesc(tmple.ld);
+                        memcpy(&(le->data),&(tmple.data),sizeof(Level1));
+                        memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                        FLAG_I_RECURSIVE = 1;FLAG_I_SUCC = 1;
+                    }else{
+                        if(le->pe.groupid == q.groupId){
+                            if (le->pe.permission[1] & Q_PERMISSION_R){
+                                qList_initdesc(tmple.ld);
+                                memcpy(&(le->data),&(tmple.data),sizeof(Level1));
+                                memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                                FLAG_I_RECURSIVE = 1;FLAG_I_SUCC = 1;
+                            }else if(le->pe.permission[1] & Q_PERMISSION_C){
+                                qList_initdesc(tmple.ld);
+                                memcpy(&(le->data),&(lv1mask),sizeof(Level1));
+                                memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                                FLAG_I_SUCC = 1;
+                            }
+                        }else if(le->pe.permission[2] & Q_PERMISSION_R){
+                            qList_initdesc(tmple.ld);
+                            memcpy(&(le->data),&(tmple.data),sizeof(Level1));
+                            memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                            FLAG_I_RECURSIVE = 1;FLAG_I_SUCC = 1;
+                        }else if(le->pe.permission[2] & Q_PERMISSION_C){
+                            qList_initdesc(tmple.ld);
+                            memcpy(&(le->data),&(lv1mask),sizeof(Level1));
+                            memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                            FLAG_I_SUCC = 1;
+                        }
+                    }
+                    if(FLAG_I_RECURSIVE){
+                        qList_foreach((le->ld),iiter){
+                            Level2Entry *lle = iiter->data;
+                            Level2Entry tmplle;
+                            ui FLAG_II_RECURSIVE = 0,FLAG_II_SUCC = 0;
+                            if(lle->pe.ownerid == q.userId || FLAG_PRIV){
+                                // full permission
+                                qList_initdesc(tmplle.ld);
+                                memcpy(&(lle->data),&(tmplle.data),sizeof(Level2));
+                                memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                FLAG_II_RECURSIVE = 1;FLAG_II_SUCC = 1;
+                            }else{
+                                if(lle->pe.groupid == q.groupId){
+                                    if (lle->pe.permission[1] & Q_PERMISSION_R){
+                                        qList_initdesc(tmplle.ld);
+                                        memcpy(&(lle->data),&(tmplle.data),sizeof(Level2));
+                                        memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                        FLAG_II_RECURSIVE = 1;FLAG_II_SUCC = 1;
+                                    }else if(lle->pe.permission[1] & Q_PERMISSION_C){
+                                        qList_initdesc(tmplle.ld);
+                                        memcpy(&(lle->data),&(lv2mask),sizeof(Level2));
+                                        memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                        FLAG_II_SUCC = 1;
+                                    }
+                                }else if(lle->pe.permission[2] & Q_PERMISSION_R){
+                                    qList_initdesc(tmplle.ld);
+                                    memcpy(&(lle->data),&(tmplle.data),sizeof(Level2));
+                                    memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                    FLAG_II_RECURSIVE = 1;FLAG_II_SUCC = 1;
+                                }else if(lle->pe.permission[2] & Q_PERMISSION_C){
+                                    qList_initdesc(tmplle.ld);
+                                    memcpy(&(lle->data),&(lv2mask),sizeof(Level2));
+                                    memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                    FLAG_II_SUCC = 1;
+                                }
+                            }
+                            if(FLAG_II_RECURSIVE){
+                                qList_foreach((lle->ld),iiiter){
+                                    Level3Entry *llle = iiiter->data;
+                                    Level3Entry tmpllle;
+                                    ui FLAG_III_SUCC = 0;
+                                    if(llle->pe.ownerid == q.userId || FLAG_PRIV){
+                                        // full permission
+                                        memcpy(&(llle->data),&(tmpllle.data),sizeof(Level3));
+                                        memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
+                                        FLAG_III_SUCC = 1;
+                                    }else{
+                                        if(llle->pe.groupid == q.groupId){
+                                            if (llle->pe.permission[1] & Q_PERMISSION_R){
+                                                memcpy(&(llle->data),&(tmpllle.data),sizeof(Level3));
+                                                memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
+                                                FLAG_III_SUCC = 1;
+                                            }else if(llle->pe.permission[1] & Q_PERMISSION_C){
+                                                memcpy(&(llle->data),&(lv3mask),sizeof(Level3));
+                                                memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
+                                                FLAG_III_SUCC = 1;
+                                            }
+                                        }else if(llle->pe.permission[2] & Q_PERMISSION_R){
+                                            memcpy(&(llle->data),&(tmpllle.data),sizeof(Level3));
+                                            memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
+                                            FLAG_III_SUCC = 1;
+                                        }else if(llle->pe.permission[2] & Q_PERMISSION_C){
+                                            memcpy(&(llle->data),&(lv3mask),sizeof(Level2));
+                                            memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
+                                            FLAG_III_SUCC = 1;
+                                        }
+                                    }
+                                    if(FLAG_III_SUCC){
+                                        qList_push_back(tmplle.ld,tmpllle);
+                                    }
+                                }
+                            }
+                            if(FLAG_II_SUCC){
+                                qList_push_back(tmple.ld,tmplle);
+                            }
+                        }
+                        if(FLAG_I_SUCC){
+                            qList_push_back(tmprld,tmple);
+                        }
+                    }
+                }
+                UNLOCKDATA;
+                qListDescriptor ser_tmprld = qSerialize(&tmprld,sizeof(qListDescriptor));
+                NETWRCHECK(*clisock,qAssembleSyncDataReply(0,ser_tmprld));
+                qList_foreach(ser_tmprld,fiter){
+                    binary_safe_string *rf = fiter->data;
+                    qbss_destructor(*rf);
+                }
+                qList_destructor(ser_tmprld);
+            }
+            break;
+            case 11:
+            {
+                AppendDataQuery* q = qDisassembleAppendDataQuery(rcontent);
+                ui FLAG_PRIV = 0,FLAG_SUCC = 0,tmpid = 0;
+                LOCKUSER;
+                CHECKPRIV(q->userId,FLAG_PRIV);
+                UNLOCKUSER;
+                LOCKDATA;
+                if(q->entryLvl == 0){
+                    ALLOCID(tmpid,lv1ids,FLAG_SUCC);
+                    if(FLAG_SUCC){
+                        Level1Entry tmpent;
+                        memcpy(&(tmpent.data),((char*)q)+sizeof(AppendDataQuery),q->datalen);
+                        qList_initdesc(tmpent.ld);
+                        setpe(tmpent.pe,q->userId,q->groupId,tmpid,umask);
+                        qList_push_back(*data,tmpent);
+                    }
+                }else{
+                    qList_foreach(*data,iter){
+                        Level1Entry *le = iter->data;
+                        if(le->pe.entryid == q->entryIds[0]){
+                            // found
+                            if(q->entryLvl == 1 ){
+                                if((checkperm(le->pe,q->userId,q->groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                    ALLOCID(tmpid,lv2ids,FLAG_SUCC);
+                                    if(FLAG_SUCC){
+                                        Level2Entry tmpent;
+                                        memcpy(&(tmpent.data),((char*)q)+sizeof(AppendDataQuery),q->datalen);
+                                        qList_initdesc(tmpent.ld);
+                                        setpe(tmpent.pe,q->userId,q->groupId,tmpid,umask);
+                                        qList_push_back(le->ld,tmpent);
+                                    }
+                                }
+                            }else if((checkperm(le->pe,q->userId,q->groupId) & Q_PERMISSION_R) || FLAG_PRIV){
+                                // entrylvl == 2
+                                qList_foreach(le->ld,iiter){
+                                    Level2Entry *lle = iiter->data;
+                                    if(lle->pe.entryid == q->entryIds[1]){
+                                        if((checkperm(lle->pe,q->userId,q->groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                            ALLOCID(tmpid,lv3ids,FLAG_SUCC);
+                                            if(FLAG_SUCC){
+                                                Level3Entry tmpent;
+                                                memcpy(&(tmpent.data),((char*)q)+sizeof(AppendDataQuery),q->datalen);
+                                                setpe(tmpent.pe,q->userId,q->groupId,tmpid,umask);
+                                                qList_push_back(lle->ld,tmpent);
+                                            }
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                UNLOCKDATA;
+                free(q);
+                NETWRCHECK(*clisock,qAssembleAppendDataReply(FLAG_SUCC?0:APPEND_FAIL,tmpid));
+            }
+            break;
+            case 12:
+            {
+                RemoveDataQuery q = qDisassembleRemoveDataQuery(rcontent);
+                ui FLAG_PRIV = 0,FLAG_SUCC = 0,tmpid = 0;
+                LOCKUSER;
+                CHECKPRIV(q.userId,FLAG_PRIV);
+                UNLOCKUSER;
+                LOCKDATA;
+                qList_foreach(*data,iter){
+                    Level1Entry *le = iter->data;
+                    if(le->pe.entryid == q.entryIds[0]){
+                        // found
+                        if(q.entryLvl == 0 ){
+                            if((checkperm(le->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                qList_foreach(le->ld,iiter){
+                                    qList_destructor(((Level2Entry*)iiter->data)->ld);
+                                }
+                                qList_destructor(le->ld);
+                                qList_erase_elem(*data,iter);
+                                FLAG_SUCC = 1;
+                            }
+                        }else if((checkperm(le->pe,q.userId,q.groupId) & Q_PERMISSION_R) || FLAG_PRIV){
+                            qList_foreach(le->ld,iiter){
+                                Level2Entry *lle = iiter->data;
+                                if(lle->pe.entryid == q.entryIds[1]){
+                                    if(q.entryLvl == 2){
+                                        if((checkperm(lle->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                            qList_destructor(lle->ld);
+                                            qList_erase_elem(le->ld,iiter);
+                                            FLAG_SUCC = 1;
+                                        }
+                                    }else if((checkperm(lle->pe,q.userId,q.groupId)&Q_PERMISSION_R)||FLAG_PRIV){
+                                        qList_foreach(lle->ld,iiiter){
+                                            Level3Entry *llle = iiiter->data;
+                                            if(llle->pe.entryid == q.entryIds[2]){
+                                                if((checkperm(llle->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                                    qList_erase_elem(lle->ld,iiiter);
+                                                    FLAG_SUCC = 1;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+                UNLOCKDATA;
+                NETWRCHECK(*clisock,qAssembleRemoveDataReply(FLAG_SUCC?0:ERASE_FAIL));
+            }
+            break;
+            case 13:
+            {
+                AlterDataQuery *q = qDisassembleAlterDataQuery(rcontent);
+                ui FLAG_PRIV = 0,FLAG_SUCC = 0,tmpid = 0;
+                LOCKUSER;
+                CHECKPRIV(q->userId,FLAG_PRIV);
+                UNLOCKUSER;
+                LOCKDATA;
+                qList_foreach(*data,iter){
+                    Level1Entry *le = iter->data;
+                    if(le->pe.entryid == q->entryIds[0]){
+                        // found
+                        if(q->entryLvl == 0 ){
+                            if((checkperm(le->pe,q->userId,q->groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                memcpy(&(le->data),((char*)q)+sizeof(AlterDataQuery),q->datalen);
+                                FLAG_SUCC = 1;
+                            }
+                        }else if((checkperm(le->pe,q->userId,q->groupId) & Q_PERMISSION_R) || FLAG_PRIV){
+                            qList_foreach(le->ld,iiter){
+                                Level2Entry *lle = iiter->data;
+                                if(lle->pe.entryid == q->entryIds[1]){
+                                    if(q->entryLvl == 2){
+                                        if((checkperm(lle->pe,q->userId,q->groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                            memcpy(&(lle->data),((char*)q)+sizeof(AlterDataQuery),q->datalen);
+                                            FLAG_SUCC = 1;
+                                        }
+                                    }else if((checkperm(lle->pe,q->userId,q->groupId)&Q_PERMISSION_R)||FLAG_PRIV){
+                                        qList_foreach(lle->ld,iiiter){
+                                            Level3Entry *llle = iiiter->data;
+                                            if(llle->pe.entryid == q->entryIds[2]){
+                                                if((checkperm(llle->pe,q->userId,q->groupId) & Q_PERMISSION_W) || FLAG_PRIV){
+                                                    memcpy(&(llle->data),((char*)q)+sizeof(AlterDataQuery),q->datalen);
+                                                    FLAG_SUCC = 1;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+                UNLOCKDATA;
+                free(q);
+                NETWRCHECK(*clisock,qAssembleAlterDataReply(FLAG_SUCC?0:ALTER_FAIL));
             }
             break;
         }

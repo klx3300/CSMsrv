@@ -113,7 +113,8 @@ struct q_SyncDataReply_st{
 struct q_AppendDataQuery_st{
     unsigned int userId;
     unsigned int groupId;
-    unsigned int entryIds[3]; // 0 means terminating.
+    unsigned int entryLvl;// 0 1 2
+    unsigned int entryIds[3];
     unsigned int datalen;
     // follow with the corresponding data.
 };
@@ -127,6 +128,7 @@ struct q_AppendDataReply_st{
 struct q_RemoveDataQuery_st{
     unsigned int userId;
     unsigned int groupId;
+    unsigned int entryLvl;
     unsigned int entryIds[3];
 };
 
@@ -138,6 +140,7 @@ struct q_RemoveDataReply_st{
 struct q_AlterDataQuery_st{
     unsigned int userId;
     unsigned int groupId;
+    unsigned int entryLvl;
     unsigned int entryIds[3];
     unsigned int datalen;
     // follow with the corresponding data.
@@ -153,6 +156,7 @@ struct q_AlterDataReply_st{
 struct q_AlterEntryOwnerQuery_st{
     unsigned int userId;
     unsigned int destuid;
+    unsigned int entryLvl;
     unsigned int entryIds[3];
 };
 
@@ -165,6 +169,7 @@ struct q_AlterEntryGroupQuery_st{
     unsigned int userId;
     unsigned int groupId;
     unsigned int destgid;
+    unsigned int entryLvl;
     unsigned int entryIds[3];
 };
 
@@ -176,6 +181,7 @@ struct q_AlterEntryGroupReply_st{
 struct q_AlterEntryPermissionQuery_st{
     unsigned int userId;
     unsigned char permission;
+    unsigned int entryLvl;
     unsigned int entryIds[3];
 };
 
@@ -306,37 +312,37 @@ SyncDataQuery qDisassembleSyncDataQuery(binary_safe_string input);
 binary_safe_string qAssembleSyncDataReply(unsigned int errNo,qListDescriptor ser_data);
 qListDescriptor qDisassembleSyncDataReply(binary_safe_string input);
 
-binary_safe_string qAssembleAppendDataQuery(unsigned int uid,unsigned int gid,unsigned int entryids[3],binary_safe_string data);
+binary_safe_string qAssembleAppendDataQuery(unsigned int uid,unsigned int gid,unsigned int entryLvl,unsigned int entryids[3],binary_safe_string data);
 AppendDataQuery *qDisassembleAppendDataQuery(binary_safe_string input);
 
 binary_safe_string qAssembleAppendDataReply(unsigned int errNo,unsigned int entryId);
 AppendDataReply qDisassembleAppendDataReply(binary_safe_string input);
 
-binary_safe_string qAssembleAlterDataQuery(unsigned int uid,unsigned int gid,unsigned int entryids[3],binary_safe_string data);
+binary_safe_string qAssembleAlterDataQuery(unsigned int uid,unsigned int gid,unsigned int entryLvl,unsigned int entryids[3],binary_safe_string data);
 AlterDataQuery *qDisassembleAlterDataQuery(binary_safe_string input);
 
 binary_safe_string qAssembleAlterDataReply(unsigned int errNo);
 AlterDataReply qDisassembleAlterDataReply(binary_safe_string input);
 
-binary_safe_string qAssembleRemoveDataQuery(unsigned int uid,unsigned int gid,unsigned int entryids[3]);
+binary_safe_string qAssembleRemoveDataQuery(unsigned int uid,unsigned int gid,unsigned int entryLvl,unsigned int entryids[3]);
 RemoveDataQuery qDisassembleRemoveDataQuery(binary_safe_string input);
 
 binary_safe_string qAssembleRemoveDataReply(unsigned int errNo);
 RemoveDataReply qDisassembleRemoveDataReply(binary_safe_string input);
 
-binary_safe_string qAssembleAlterEntryOwnerQuery(unsigned int uid,unsigned int destuid,unsigned int entryids[3]);
+binary_safe_string qAssembleAlterEntryOwnerQuery(unsigned int uid,unsigned int destuid,unsigned int entryLvl,unsigned int entryids[3]);
 AlterEntryOwnerQuery qDisassembleAlterEntryOwnerQuery(binary_safe_string input);
 
 binary_safe_string qAssembleAlterEntryOwnerReply(unsigned int errNo);
 AlterEntryOwnerReply qDisassembleAlterEntryOwnerReply(binary_safe_string input);
 
-binary_safe_string qAssembleAlterEntryGroupQuery(unsigned int uid,unsigned int gid,unsigned int destgid,unsigned int entryids[3]);
+binary_safe_string qAssembleAlterEntryGroupQuery(unsigned int uid,unsigned int gid,unsigned int destgid,unsigned int entryLvl,unsigned int entryids[3]);
 AlterEntryGroupQuery qDisassembleAlterEntryGroupQuery(binary_safe_string input);
 
 binary_safe_string qAssembleAlterEntryGroupReply(unsigned int errNo);
 AlterEntryGroupReply qDisassembleAlterEntryGroupReply(binary_safe_string input);
 
-binary_safe_string qAssembleAlterEntryPermissionQuery(unsigned int uid,unsigned char perm,unsigned int entryids[3]);
+binary_safe_string qAssembleAlterEntryPermissionQuery(unsigned int uid,unsigned char perm,unsigned int entryLvl,unsigned int entryids[3]);
 AlterEntryPermissionQuery qDisassembleAlterEntryPermissionQuery(binary_safe_string input);
 
 binary_safe_string qAssembleAlterEntryPermissionReply(unsigned int errNo);

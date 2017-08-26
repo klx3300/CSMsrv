@@ -5,5 +5,8 @@
 #define USER_NOT_EXIST 2
 #define PERMISSION_DENIED 3
 #define GROUP_NOT_EXIST 4
+#define APPEND_FAIL 5
+#define ERASE_FAIL 6
+#define ALTER_FAIL 7
 
 #endif

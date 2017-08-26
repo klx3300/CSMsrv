@@ -359,13 +359,14 @@ qListDescriptor qDisassembleSyncDataReply(binary_safe_string input){
     return ld;
 }
 
-binary_safe_string qAssembleAppendDataQuery(unsigned int uid,unsigned int gid,unsigned int entryids[3],binary_safe_string data){
+binary_safe_string qAssembleAppendDataQuery(unsigned int uid,unsigned int gid,unsigned int entryLvl,unsigned int entryids[3],binary_safe_string data){
     binary_safe_string bss = qbss_new();
     UHEADERINIT(11,AppendDataQuery);
     hd.size += data.size;
     AppendDataQuery adq;
     adq.userId = uid;
     adq.groupId = gid;
+    adq.entryLvl = entryLvl;
     memcpy(adq.entryIds,entryids,3*sizeof(unsigned int));
     adq.datalen = data.size;
     BSSAPP(bss,hd);
@@ -400,13 +401,14 @@ AppendDataReply qDisassembleAppendDataReply(binary_safe_string input){
     return adr;
 }
 
-binary_safe_string qAssembleAlterDataQuery(unsigned int uid,unsigned int gid,unsigned int entryids[3],binary_safe_string data){
+binary_safe_string qAssembleAlterDataQuery(unsigned int uid,unsigned int gid,unsigned int entryLvl,unsigned int entryids[3],binary_safe_string data){
     binary_safe_string bss = qbss_new();
     UHEADERINIT(13,AlterDataQuery);
     hd.size += data.size;
     AlterDataQuery adq;
     adq.userId = uid;
     adq.groupId = gid;
+    adq.entryLvl = entryLvl;
     memcpy(adq.entryIds,entryids,3*sizeof(unsigned int));
     adq.datalen = data.size;
     BSSAPP(bss,hd);
@@ -440,12 +442,13 @@ AlterDataReply qDisassembleAlterDataReply(binary_safe_string input){
     return adr;
 }
 
-binary_safe_string qAssembleRemoveDataQuery(unsigned int uid,unsigned int gid,unsigned int entryids[3]){
+binary_safe_string qAssembleRemoveDataQuery(unsigned int uid,unsigned int gid,unsigned int entryLvl,unsigned int entryids[3]){
     binary_safe_string bss = qbss_new();
     UHEADERINIT(12,RemoveDataQuery);
     RemoveDataQuery adq;
     adq.userId = uid;
     adq.groupId = gid;
+    adq.entryLvl = entryLvl;
     memcpy(adq.entryIds,entryids,3*sizeof(unsigned int));
     BSSAPP(bss,hd);
     BSSAPP(bss,adq);
@@ -474,12 +477,13 @@ RemoveDataReply qDisassembleRemoveDataReply(binary_safe_string input){
     return adr;
 }
 
-binary_safe_string qAssembleAlterEntryOwnerQuery(unsigned int uid,unsigned int destuid,unsigned int entryids[3]){
+binary_safe_string qAssembleAlterEntryOwnerQuery(unsigned int uid,unsigned int destuid,unsigned int entryLvl,unsigned int entryids[3]){
     binary_safe_string bss = qbss_new();
     UHEADERINIT(20,AlterEntryOwnerQuery);
     AlterEntryOwnerQuery adq;
     adq.userId = uid;
     adq.destuid = destuid;
+    adq.entryLvl = entryLvl;
     memcpy(adq.entryIds,entryids,3*sizeof(unsigned int));
     BSSAPP(bss,hd);
     BSSAPP(bss,adq);
@@ -508,13 +512,14 @@ AlterEntryOwnerReply qDisassembleAlterEntryOwnerReply(binary_safe_string input){
     return adr;
 }
 
-binary_safe_string qAssembleAlterEntryGroupQuery(unsigned int uid,unsigned int gid,unsigned int destgid,unsigned int entryids[3]){
+binary_safe_string qAssembleAlterEntryGroupQuery(unsigned int uid,unsigned int gid,unsigned int destgid,unsigned int entryLvl,unsigned int entryids[3]){
     binary_safe_string bss = qbss_new();
     UHEADERINIT(21,AlterEntryGroupQuery);
     AlterEntryGroupQuery adq;
     adq.userId = uid;
     adq.groupId = gid;
     adq.destgid = destgid;
+    adq.entryLvl = entryLvl;
     memcpy(adq.entryIds,entryids,3*sizeof(unsigned int));
     BSSAPP(bss,hd);
     BSSAPP(bss,adq);
@@ -543,12 +548,13 @@ AlterEntryGroupReply qDisassembleAlterEntryGroupReply(binary_safe_string input){
     return adr;
 }
 
-binary_safe_string qAssembleAlterEntryPermissionQuery(unsigned int uid,unsigned char perm,unsigned int entryids[3]){
+binary_safe_string qAssembleAlterEntryPermissionQuery(unsigned int uid,unsigned char perm,unsigned int entryLvl,unsigned int entryids[3]){
     binary_safe_string bss = qbss_new();
     UHEADERINIT(22,AlterEntryPermissionQuery);
     AlterEntryPermissionQuery adq;
     adq.userId = uid;
     adq.permission = perm;
+    adq.entryLvl = entryLvl;
     memcpy(adq.entryIds,entryids,3*sizeof(unsigned int));
     BSSAPP(bss,hd);
     BSSAPP(bss,adq);
