@@ -3,6 +3,8 @@
 
 #define FULLPERM (Q_PERMISSION_C|Q_PERMISSION_R|Q_PERMISSION_W)
 
+unsigned char umask[3] = {(Q_PERMISSION_C|Q_PERMISSION_R|Q_PERMISSION_W),(Q_PERMISSION_C|Q_PERMISSION_R),(Q_PERMISSION_C)};
+
 void q__setpe(PermissionEntry* pe,unsigned int uid,unsigned int gid,unsigned int eid,unsigned char mask[3]){
     pe->ownerid = uid;
     pe->groupid = gid;

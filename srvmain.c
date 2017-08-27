@@ -34,7 +34,6 @@ ui uhashf(void* t,ui size){
 ui RUNNING=1;
 ui cliconns = 0;
 
-unsigned char umask[3] = {(Q_PERMISSION_C|Q_PERMISSION_R|Q_PERMISSION_W),(Q_PERMISSION_C|Q_PERMISSION_R),(Q_PERMISSION_C)};
 ui permsize = 3*sizeof(unsigned char);
 
 #define mapinsert(map,key,value) qMap_insert(map,key,value,uhashf)

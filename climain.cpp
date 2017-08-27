@@ -17,6 +17,7 @@ extern "C"{
 
 #include "clinet/clinet.h"
 #include "zhwkre/serialization.h"
+#include "permissionctl/permissionctl.h"
 }
 
 #define PUSH(num) (((ui)1)<<(num))
@@ -44,8 +45,15 @@ const ui uistat_syncgroup = PUSH(5);
 const ui uistat_showgroup = PUSH(6);
 const ui uistat_showuser = PUSH(7);
 const ui uistat_syncuser = PUSH(8);
-const ui uistat_level2 = PUSH(9);
-const ui uistat_level3 = PUSH(10);
+const ui uistat_level1 = PUSH(9);
+const ui uistat_level2 = PUSH(10);
+const ui uistat_level3 = PUSH(11);
+const ui uistat_l1append = PUSH(12);
+const ui uistat_l2append = PUSH(13);
+const ui uistat_l3append = PUSH(14);
+const ui uistat_alterowner = PUSH(15);
+const ui uistat_altergroup = PUSH(16);
+const ui uistat_alterperm = PUSH(17);
 
 static void error_callback(int error, const char* description){
     fprintf(stderr, "Error %d: %s\n", error, description);
@@ -79,12 +87,14 @@ int main(int argc, char** argv)
         char usernamebuffer[256],passwordbuffer[256];
         char serverbuffer[256];
         ui uid=9999,gid=9999;
+        ui destuid=9999,destgid=9999;
         qListDescriptor *grouplist=NULL;
         qListDescriptor *userlist = NULL;
         qListDescriptor *data = NULL;
-        Level1Entry *currl1e=NULL;Level2Entry *currl2e=NULL;
+        Level1Entry *currl1e=NULL;Level2Entry *currl2e=NULL;Level3Entry *currl3e=NULL;
         Level1Entry l1buffer;Level2Entry l2buffer;Level3Entry l3buffer;
-    // setup basic envirs
+        unsigned char destperm[3];
+        // setup basic envirs
     {
         SETSTAT(uistat_login);
         memset(usernamebuffer,0,256);
@@ -93,6 +103,7 @@ int main(int argc, char** argv)
         memset(&l1buffer,0,sizeof(l1buffer));
         memset(&l2buffer,0,sizeof(l2buffer));
         memset(&l3buffer,0,sizeof(l3buffer));
+        memcpy(destperm,umask,3*sizeof(unsigned char));
         qList_initdesc(ui_notifier);
         qList_initdesc(network_notifier);
         ui_noti_lock = qMutex_constructor();
@@ -233,37 +244,162 @@ int main(int argc, char** argv)
                 {
                     AppendDataReply r = qDisassembleAppendDataReply(msg->payload);
                     if(!(r.errNo)){
+                        if(currl2e != NULL){
+                            CLRSTAT(uistat_l3append);
+                            setpe(l3buffer.pe,uid,gid,r.entryId,umask);
+                            qList_push_back(currl2e->ld,l3buffer);
+                        }else if(currl1e!=NULL){
+                            CLRSTAT(uistat_l2append);
+                            setpe(l2buffer.pe,uid,gid,r.entryId,umask);
+                            qList_initdesc(l2buffer.ld);
+                            qList_push_back(currl1e->ld,l2buffer);
+                        }else{
+                            CLRSTAT(uistat_l1append);
+                            setpe(l1buffer.pe,uid,gid,r.entryId,umask);
+                            qList_initdesc(l1buffer.ld);
+                            qList_push_back(*data,l1buffer);
+                        }
+                    }else{
+                        if(currl2e != NULL){
+                            CLRSTAT(uistat_l3append);
+                        }else if(currl1e!=NULL){
+                            CLRSTAT(uistat_l2append);
+                        }else{
+                            CLRSTAT(uistat_l1append);
+                        }
+                        ImGui::BeginPopup("FAIL##on_append_entry_fail");
+                        ImGui::Text("Append Entry failed. Error Number is %d",r.errNo);
                     }
                 }
                 break;
                 case 12:
                 {
-
+                    RemoveDataReply r = qDisassembleRemoveDataReply(msg->payload);
+                    if(!(r.errNo)){
+                        if(currl3e != NULL){
+                            CLRSTAT(uistat_level3);
+                            qList_foreach(currl2e->ld,iter){
+                                Level3Entry *ref = (Level3Entry*)iter->data;
+                                if(ref->pe.entryid == currl3e->pe.entryid){
+                                    qList_erase_elem(currl2e->ld,iter);
+                                    break;
+                                }
+                            }
+                            currl3e = NULL;
+                        }else if(currl2e!=NULL){
+                            CLRSTAT(uistat_level2);
+                            qList_foreach(currl1e->ld,iter){
+                                Level2Entry *ref = (Level2Entry *)iter->data;
+                                if(ref->pe.entryid == currl2e->pe.entryid){
+                                    qList_destructor(ref->ld);
+                                    qList_erase_elem(currl1e->ld,iter);
+                                    break;
+                                }
+                            }
+                            currl2e = NULL;
+                        }else if(currl1e!=NULL){
+                            CLRSTAT(uistat_level1);
+                            qList_foreach(*data,iter){
+                                Level1Entry *ref = (Level1Entry*) iter->data;
+                                if(ref->pe.entryid == currl1e->pe.entryid){
+                                    qList_foreach(ref->ld,iiter){
+                                        Level2Entry *rref = (Level2Entry*) iiter->data;
+                                        qList_destructor(rref->ld);
+                                    }
+                                    qList_destructor(ref->ld);
+                                    qList_erase_elem(*data,iter);
+                                    break;
+                                }
+                            }
+                            currl1e = NULL;
+                        }
+                    }else{
+                        ImGui::BeginPopup("FAIL##on_remove_entry_failed");
+                        ImGui::Text("Remove Entry failed. Error code is %d.",r.errNo);
+                        ImGui::EndPopup();
+                    }
                 }
                 break;
                 case 13:
                 {
-
+                    AlterDataReply r = qDisassembleAlterDataReply(msg->payload);
+                    if(!(r.errNo)){
+                        if(currl3e != NULL){
+                            memcpy(&(currl3e->data),&(l3buffer.data),sizeof(Level3));
+                        }else if(currl2e!=NULL){
+                            memcpy(&(currl2e->data),&(l2buffer.data),sizeof(Level2));
+                        }else if(currl1e != NULL){
+                            memcpy(&(currl1e->data),&(l1buffer.data),sizeof(Level1));
+                        }
+                    }else{
+                        ImGui::BeginPopup("FAIL##on_alter_entry_failed");
+                        ImGui::Text("Alter Entry failed. Error code is %d.",r.errNo);
+                        ImGui::EndPopup();
+                    }
                 }
                 break;
                 case 20:
                 {
-
+                    AlterEntryOwnerReply r = qDisassembleAlterEntryOwnerReply(msg->payload);
+                    CLRSTAT(uistat_alterowner);
+                    if(!(r.errNo)){
+                        if(currl3e != NULL){
+                            currl3e->pe.ownerid = destuid;
+                        }else if(currl2e!=NULL){
+                            currl2e->pe.ownerid = destuid;
+                        }else if(currl1e != NULL){
+                            currl1e->pe.ownerid = destuid;
+                        }
+                    }else{
+                        ImGui::BeginPopup("FAIL##on_alter_owner_fail");
+                        ImGui::Text("Alter Entry Owner failed. Error code is %d",r.errNo);
+                        ImGui::EndPopup();
+                    }
                 }
                 break;
                 case 21:
                 {
-
+                    AlterEntryGroupReply r = qDisassembleAlterEntryGroupReply(msg->payload);
+                    CLRSTAT(uistat_altergroup);
+                    if(!(r.errNo)){
+                        if(currl3e != NULL){
+                            currl3e->pe.groupid = destgid;
+                        }else if(currl2e!=NULL){
+                            currl2e->pe.groupid = destgid;
+                        }else if(currl1e != NULL){
+                            currl1e->pe.groupid = destgid;
+                        }
+                    }else{
+                        ImGui::BeginPopup("FAIL##on_alter_group_fail");
+                        ImGui::Text("Alter Entry Group failed. Error code is %d",r.errNo);
+                        ImGui::EndPopup();
+                    }
                 }
                 break;
                 case 22:
                 {
-
+                    AlterEntryPermissionReply r = qDisassembleAlterEntryPermissionReply(msg->payload);
+                    CLRSTAT(uistat_alterowner);
+                    if(!(r.errNo)){
+                        if(currl3e != NULL){
+                            memcpy(currl3e->pe.permission,destperm,3*sizeof(unsigned char));
+                        }else if(currl2e!=NULL){
+                            memcpy(currl2e->pe.permission,destperm,3*sizeof(unsigned char));
+                        }else if(currl1e != NULL){
+                            memcpy(currl1e->pe.permission,destperm,3*sizeof(unsigned char));
+                        }
+                    }else{
+                        ImGui::BeginPopup("FAIL##on_alter_owner_fail");
+                        ImGui::Text("Alter Entry Owner failed. Error code is %d",r.errNo);
+                        ImGui::EndPopup();
+                    }
                 }
                 break;
                 default:
                 {
-
+                    ImGui::BeginPopup("UNEXPECTED BEHAVIOR##on_receive_unknown_qid");
+                    ImGui::Text("Program control flow reached unexpected part. qid is %d",msg->qid);
+                    ImGui::EndPopup();
                 }
                 break;
             }

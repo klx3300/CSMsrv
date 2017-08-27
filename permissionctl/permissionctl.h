@@ -28,6 +28,8 @@ typedef struct q_UserData_st UserData;
 typedef struct q_GroupData_st GroupData;
 typedef struct q_PermissionEntry_st PermissionEntry;
 
+extern unsigned char umask[3];
+
 #define setpe(pe,uid,gid,eid,mask) q__setpe(&(pe),uid,gid,eid,mask)
 void q__setpe(PermissionEntry* pe,unsigned int uid,unsigned int gid,unsigned int eid,unsigned char mask[3]);
 
