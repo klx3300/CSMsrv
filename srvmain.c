@@ -348,6 +348,7 @@ void* handle_client(void* clisock_x){
             fprintf(stderr,"[INFO] Conn ended with client with fd %d\n",clisock->desc);
             qSocket_close(*clisock);
             FLAG_CONT = 0;
+            continue;
         }
         switch(queryid){
             case 0:
@@ -1003,6 +1004,7 @@ void* handle_client(void* clisock_x){
             FLAG_CONT = 0;
             break;
         }
+        qbss_destructor(rcontent);
     }
     connclock.lock(connclock);
     cliconns --;
