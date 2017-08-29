@@ -39,25 +39,26 @@ typedef unsigned int ui;
 ui curr_status = 0;
 ui curr_dirty = 0;
 // some_consts
-const ui uistat_login = PUSH(0);
-const ui uistat_process_login = PUSH(1);
-const ui uistat_syncdata = PUSH(2);
-const ui uistat_main = PUSH(3);
-const ui uistat_alterpass = PUSH(4);
-const ui uistat_syncgroup = PUSH(5);
-const ui uistat_showgroup = PUSH(6);
-const ui uistat_showuser = PUSH(7);
-const ui uistat_syncuser = PUSH(8);
-const ui uistat_level1 = PUSH(9);
-const ui uistat_level2 = PUSH(10);
-const ui uistat_level3 = PUSH(11);
-const ui uistat_l1append = PUSH(12);
-const ui uistat_l2append = PUSH(13);
-const ui uistat_l3append = PUSH(14);
-const ui uistat_alterowner = PUSH(15);
-const ui uistat_altergroup = PUSH(16);
-const ui uistat_alterperm = PUSH(17);
-const ui uistat_admin = PUSH(18);
+const ui uistat_login = PUSH(0); // --
+const ui uistat_process_login = PUSH(1); // --
+const ui uistat_syncdata = PUSH(2); // --
+const ui uistat_main = PUSH(3); // --
+const ui uistat_alterpass = PUSH(4); // --
+const ui uistat_syncgroup = PUSH(5);  // --
+const ui uistat_showgroup = PUSH(6); // --
+const ui uistat_showuser = PUSH(7); // --
+const ui uistat_syncuser = PUSH(8); // --
+const ui uistat_level1 = PUSH(9); // --
+const ui uistat_level2 = PUSH(10); // --
+const ui uistat_level3 = PUSH(11); // --
+const ui uistat_l1append = PUSH(12); // --
+const ui uistat_l2append = PUSH(13); // --
+const ui uistat_l3append = PUSH(14); // --
+const ui uistat_alterowner = PUSH(15); // --
+const ui uistat_altergroup = PUSH(16); // --
+const ui uistat_alterperm = PUSH(17); // --
+const ui uistat_admin = PUSH(18); // --
+const ui uistat_setgroup = PUSH(19); // --
 
 static void error_callback(int error, const char* description){
     fprintf(stderr, "Error %d: %s\n", error, description);
@@ -91,8 +92,10 @@ int main(int argc, char** argv)
         char usernamebuffer[256],passwordbuffer[256];
         char serverbuffer[256];
         char origpassbuffer[256],alterpassbuffer[256];
+        char alterpermbuffer[10];
         ui uid=9999,gid=9999;
         ui destuid=9999,destgid=9999;
+        ui destrmuid = 9999,destrmgid=9999;
         int tmpcolorR=0,tmpcolorG=0,tmpcolorB=0;
         float picker=0.0;
         qListDescriptor *grouplist=NULL;
@@ -109,6 +112,7 @@ int main(int argc, char** argv)
         memset(serverbuffer,0,256);
         memset(origpassbuffer,0,256);
         memset(alterpassbuffer,0,256);
+        memset(alterpermbuffer,0,10);
         memset(&l1buffer,0,sizeof(l1buffer));
         memset(&l2buffer,0,sizeof(l2buffer));
         memset(&l3buffer,0,sizeof(l3buffer));
@@ -627,7 +631,7 @@ int main(int argc, char** argv)
                 qbss_append(tmpbss,(char*)&l1buffer,sizeof(l1buffer));
                 ui entids[3];
                 entids[0]=currl1e->pe.entryid;
-                m.payload = qAssembleAlterDataQuery(uid,gid,1,entids,tmpbss);
+                m.payload = qAssembleAlterDataQuery(uid,gid,0,entids,tmpbss);
                 LOCKNET;
                 qList_push_back(network_notifier,m);
                 UNLOCKNET;
@@ -659,7 +663,14 @@ int main(int argc, char** argv)
                 SETSTAT(uistat_alterperm);
             }
             if(ImGui::Button("Remove##level1_detail")){
-
+                Messeage m;
+                m.qid = 1;
+                ui tmpids[3];
+                tmpids[0]=currl1e->pe.entryid;
+                m.payload = qAssembleRemoveDataQuery(uid,gid,1,tmpids);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
             }
             ImGui::SameLine();
             if(ImGui::Button("Close##Level1_detail")){
@@ -731,7 +742,7 @@ int main(int argc, char** argv)
                 ui entids[3];
                 entids[0]=currl1e->pe.entryid;
                 entids[1]=currl2e->pe.entryid;
-                m.payload=qAssembleAlterDataQuery(uid,gid,2,entids,tmpbss);
+                m.payload=qAssembleAlterDataQuery(uid,gid,1,entids,tmpbss);
                 LOCKNET;
                 qList_push_back(network_notifier,m);
                 UNLOCKNET;
@@ -763,7 +774,15 @@ int main(int argc, char** argv)
                 SETSTAT(uistat_alterperm);
             }
             if(ImGui::Button("Remove##level2_detail")){
-
+                Messeage m;
+                m.qid = 1;
+                ui tmpids[3];
+                tmpids[0]=currl1e->pe.entryid;
+                tmpids[1]=currl2e->pe.entryid;
+                m.payload = qAssembleRemoveDataQuery(uid,gid,2,tmpids);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
             }
             ImGui::SameLine();
             if(ImGui::Button("Close##Level2_detail")){
@@ -818,25 +837,372 @@ int main(int argc, char** argv)
             ImGui::SameLine();
             ImGui::InputText("Seller",l3buffer.data.sellerId,20);
             if(ImGui::Button("Alter##level3_detail")){
-
+                Messeage m;
+                binary_safe_string tmpbss = qbss_new();
+                qbss_append(tmpbss,(char*)&l3buffer,sizeof(l3buffer));
+                ui entids[3];
+                entids[0]=currl1e->pe.entryid;
+                entids[1]=currl2e->pe.entryid;
+                entids[2]=currl3e->pe.entryid;
+                m.payload = qAssembleAlterDataQuery(uid,gid,2,entids,tmpbss);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+                qbss_destructor(tmpbss);
             }
             ImGui::SameLine();
             if(ImGui::Button("AlterOwner##level3_detail")){
-
+                SETSTAT(uistat_alterowner);
             }
             if(ImGui::Button("AlterGroup##level3_detail")){
-
+                SETSTAT(uistat_altergroup);
             }
             ImGui::SameLine();
             if(ImGui::Button("AlterPermission##level3_detail")){
-
+                SETSTAT(uistat_alterperm);
             }
             if(ImGui::Button("Remove##level3_detail")){
-
+                Messeage m;
+                m.qid = 1;
+                ui tmpids[3];
+                tmpids[0] = currl1e->pe.entryid;
+                tmpids[1] = currl2e->pe.entryid;
+                tmpids[2] = currl3e->pe.entryid;
+                m.payload = qAssembleRemoveDataQuery(uid,gid,3,tmpids);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
             }
             ImGui::SameLine();
             if(ImGui::Button("Close##level3_detail")){
-
+                currl3e = NULL;
+                CLRSTAT(uistat_level3);
+            }
+        }
+        if(CHKSTAT(uistat_admin)){
+            if(ImGui::Button("List Users##admin_panel")){
+                SETSTAT(uistat_syncuser);
+                SETDIRT(uistat_syncuser);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("List Groups##admin_panel")){
+                SETSTAT(uistat_syncgroup);
+                SETDIRT(uistat_syncgroup);
+            }
+            if(ImGui::Button("Move User to Group##admin_panel")){
+                SETSTAT(uistat_setgroup);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Close##admin_panel")){
+                CLRSTAT(uistat_admin);
+            }
+        }
+        if(CHKSTAT(uistat_setgroup)){
+            ImGui::InputInt("Target User Id",(int*)&destuid);
+            ImGui::InputInt("Target Group Id",(int*)&destgid);
+            if(ImGui::Button("Confirm Alternation##setgrp")){
+                Messeage m;
+                m.qid = 1;
+                m.payload = qAssembleAlterGroupQuery(uid,destuid,destgid);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Cancel")){
+                CLRSTAT(uistat_setgroup);
+            }
+        }
+        if(CHKSTAT(uistat_syncgroup)){
+            if(CHKDIRT(uistat_syncgroup)){
+                CLRDIRT(uistat_syncgroup);
+                Messeage m;
+                m.qid = 1;
+                m.payload = qAssembleListGroupQuery(uid);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+            }
+            ImGui::Begin("Please Wait##sync_group");
+            ImGui::Text("Synchronizing group data with server..");
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_showgroup)){
+            ImGui::Begin("AdminInterface -- Groups");
+            if(ImGui::Button("Close##admin_groups")){
+                CLRSTAT(uistat_showgroup);
+            }
+            ImGui::InputInt("group id",(int*)&destrmgid);
+            ImGui::SameLine();
+            if(ImGui::Button("Remove")){
+                Messeage m;
+                m.qid = 1;
+                m.payload = qAssembleRemoveGroupQuery(uid,destrmgid);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+            }
+            ImGui::Text("Avaliable Groups(Only gid)");
+            ImGui::Separator();
+            qList_foreach(*grouplist,iter){
+                GroupData *g = (GroupData*)iter->data;
+                ImGui::Text("%d",g->gid);
+                ImGui::Separator();
+            }
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_syncuser)){
+            if(CHKDIRT(uistat_syncuser)){
+                CLRDIRT(uistat_syncuser);
+                Messeage m;
+                m.qid = 1;
+                m.payload = qAssembleListUserQuery(uid);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+            }
+            ImGui::Begin("Please Wait##sync_user");
+            ImGui::Text("Synchronizing user data with server..");
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_showuser)){
+            ImGui::Begin("AdminInterfase -- Users");
+            if(ImGui::Button("Close##admin_users")){
+                CLRSTAT(uistat_showuser);
+            }
+            ImGui::InputInt("user id",(int*)&destrmuid);
+            ImGui::SameLine();
+            if(ImGui::Button("Remove")){
+                Messeage m;
+                m.qid = 1;
+                m.payload = qAssembleRemoveUserQuery(uid,destrmuid);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+            }
+            ImGui::Separator();
+            ImGui::Columns(3,"Uses");
+            ImGui::Separator();
+            GUICOLUMNNEXT("UserId");
+            GUICOLUMNNEXT("GroupId");
+            GUICOLUMNNEXT("Username");
+            ImGui::Separator();
+            qList_foreach(*userlist,iter){
+                UserData* u = (UserData*)iter->data;
+                GUICOLUMNNEXT("%u",u->uid);
+                GUICOLUMNNEXT("%u",u->gid);
+                GUICOLUMNNEXT("%s",u->username);
+            }
+            ImGui::Columns(1);
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_l1append)){
+            ImGui::Begin("Append Data##l1append");
+            ImGui::InputText("CarId",l1buffer.data.carId,20);
+            ImGui::SameLine();
+            ImGui::InputText("CarName",l1buffer.data.carName,20);
+            ImGui::InputInt("Weight",&(l1buffer.data.weight));
+            ImGui::SameLine();
+            ImGui::InputInt("SeatNum",&(l1buffer.data.seatNum));
+            ImGui::InputInt("Length",&(l1buffer.data.length));
+            ImGui::SameLine();
+            ImGui::InputInt("Width",&(l1buffer.data.width));
+            ImGui::SameLine();
+            ImGui::InputInt("Height",&(l1buffer.data.height));
+            if(ImGui::Button("Append##level1_append")){
+                Messeage m;
+                m.qid = 1;
+                binary_safe_string tmpbss = qbss_new();
+                qbss_append(tmpbss,(char*)&l1buffer,sizeof(l1buffer));
+                ui entids[3];
+                m.payload = qAssembleAppendDataQuery(uid,gid,0,entids,tmpbss);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+                qbss_destructor(tmpbss);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Close##level1_append")){
+                CLRSTAT(uistat_l1append);
+            }
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_l2append)){
+            ImGui::Begin("Append Data##l2append");
+            ImGui::InputText("CarId",l2buffer.data.carId,20);
+            ImGui::SameLine();
+            ImGui::InputText("CarName",l2buffer.data.carName,20);
+            ImGui::ColorPicker3("Color",&picker);
+            ImGui::SameLine();
+            ImGui::InputText("SellDate",l2buffer.data.selldate,12);
+            ImGui::InputText("CustName",l2buffer.data.customerName,20);
+            ImGui::SameLine();
+            ImGui::InputText("CustId",l2buffer.data.customerId,18);
+            ImGui::SameLine();
+            ImGui::InputText("CustTel",l2buffer.data.customerTel,20);
+            ImGui::InputFloat("Price",&(l2buffer.data.priceSum));
+            if(ImGui::Button("Append##level2_append")){
+                Messeage m;
+                m.qid = 1;
+                binary_safe_string tmpbss = qbss_new();
+                qbss_append(tmpbss,(char*)&l2buffer,sizeof(l2buffer));
+                ui entids[3];
+                entids[0] = currl1e->pe.entryid;
+                m.payload = qAssembleAppendDataQuery(uid,gid,1,entids,tmpbss);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+                qbss_destructor(tmpbss);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Close##level2_append")){
+                CLRSTAT(uistat_l2append);
+            }
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_l3append)){
+            ImGui::Begin("Append Data##l3append");
+            ImGui::InputText("CarId",l3buffer.data.carId,20);
+            ImGui::SameLine();
+            ImGui::InputText("PayDate",l3buffer.data.paydate,12);
+            ImGui::InputFloat("Amount",&(l3buffer.data.amount));
+            ImGui::SameLine();
+            ImGui::InputFloat("Remains",&(l3buffer.data.remain));
+            ImGui::SameLine();
+            ImGui::InputText("Seller",l3buffer.data.sellerId,20);
+            if(ImGui::Button("Append##level3_append")){
+                Messeage m;
+                m.qid = 1;
+                binary_safe_string tmpbss = qbss_new();
+                qbss_append(tmpbss,(char*)&l3buffer,sizeof(l3buffer));
+                ui entids[3];
+                entids[0]=currl1e->pe.entryid;
+                entids[1]=currl2e->pe.entryid;
+                m.payload = qAssembleAppendDataQuery(uid,gid,2,entids,tmpbss);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+                qbss_destructor(tmpbss);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Close##level3_append")){
+                CLRSTAT(uistat_l1append);
+            }
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_alterowner)){
+            ImGui::Begin("Alter Owner of Entry");
+            ImGui::InputInt("Destintation Uid",(int*)&destuid);
+            if(ImGui::Button("Alter##alter_owner")){
+                Messeage m;
+                m.qid = 1;
+                ui entids[3];
+                ui levels=0;
+                if(CHKSTAT(uistat_level1)){
+                    entids[0]=currl1e->pe.entryid;
+                    levels=0;
+                }
+                if(CHKSTAT(uistat_level2)){
+                    entids[1]=currl2e->pe.entryid;
+                    levels=1;
+                }
+                if(CHKSTAT(uistat_level3)){
+                    entids[2]=currl3e->pe.entryid;
+                    levels = 2;
+                }
+                m.payload = qAssembleAlterEntryOwnerQuery(uid,gid,destuid,levels,entids);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+            }
+            if(ImGui::Button("Close##alter_owner")){
+                CLRSTAT(uistat_alterowner);
+            }
+        }
+        if(CHKSTAT(uistat_altergroup)){
+            ImGui::Begin("Alter Group of Entry");
+            ImGui::InputInt("Destintation Gid",(int*)&destgid);
+            if(ImGui::Button("Alter##alter_group")){
+                Messeage m;
+                m.qid = 1;
+                ui entids[3];
+                ui levels=0;
+                if(CHKSTAT(uistat_level1)){
+                    entids[0]=currl1e->pe.entryid;
+                    levels=0;
+                }
+                if(CHKSTAT(uistat_level2)){
+                    entids[1]=currl2e->pe.entryid;
+                    levels=1;
+                }
+                if(CHKSTAT(uistat_level3)){
+                    entids[2]=currl3e->pe.entryid;
+                    levels = 2;
+                }
+                m.payload = qAssembleAlterEntryGroupQuery(uid,gid,destgid,levels,entids);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+            }
+            if(ImGui::Button("Close##alter_group")){
+                CLRSTAT(uistat_altergroup);
+            }
+        }
+        if(CHKSTAT(uistat_alterperm)){
+            ImGui::Begin("Alter Permission of Entry");
+            ImGui::InputText("Permission Mask",alterpermbuffer,10);
+            if(ImGui::Button("Alter##alter_perm")){
+                Messeage m;
+                m.qid = 1;
+                ui entids[3];
+                ui levels=0;
+                if(CHKSTAT(uistat_level1)){
+                    entids[0]=currl1e->pe.entryid;
+                    levels=0;
+                }
+                if(CHKSTAT(uistat_level2)){
+                    entids[1]=currl2e->pe.entryid;
+                    levels=1;
+                }
+                if(CHKSTAT(uistat_level3)){
+                    entids[2]=currl3e->pe.entryid;
+                    levels = 2;
+                }
+                memset(destperm,0,sizeof(unsigned char)*3);
+                if(alterpermbuffer[0]!='-'){
+                    destperm[0] |= Q_PERMISSION_C;
+                }
+                if(alterpermbuffer[1]!='-'){
+                    destperm[0] |= Q_PERMISSION_R;
+                }
+                if(alterpermbuffer[2]!='-'){
+                    destperm[0] |= Q_PERMISSION_W;
+                }
+                if(alterpermbuffer[3]!='-'){
+                    destperm[1] |= Q_PERMISSION_C;
+                }
+                if(alterpermbuffer[4]!='-'){
+                    destperm[1] |= Q_PERMISSION_R;
+                }
+                if(alterpermbuffer[5]!='-'){
+                    destperm[1] |= Q_PERMISSION_W;
+                }
+                if(alterpermbuffer[6]!='-'){
+                    destperm[2] |= Q_PERMISSION_C;
+                }
+                if(alterpermbuffer[7]!='-'){
+                    destperm[2] |= Q_PERMISSION_R;
+                }
+                if(alterpermbuffer[8]!='-'){
+                    destperm[2] |= Q_PERMISSION_W;
+                }
+                m.payload = qAssembleAlterEntryPermissionQuery(uid,gid,destperm,levels,entids);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+            }
+            if(ImGui::Button("Close##alter_perm")){
+                CLRSTAT(uistat_alterperm);
             }
         }
         // Rendering
