@@ -93,6 +93,8 @@ int main(int argc, char** argv)
         char origpassbuffer[256],alterpassbuffer[256];
         ui uid=9999,gid=9999;
         ui destuid=9999,destgid=9999;
+        int tmpcolorR=0,tmpcolorG=0,tmpcolorB=0;
+        float picker=0.0;
         qListDescriptor *grouplist=NULL;
         qListDescriptor *userlist = NULL;
         qListDescriptor *data = NULL;
@@ -656,10 +658,20 @@ int main(int argc, char** argv)
             if(ImGui::Button("AlterPermission##Level1_detail")){
                 SETSTAT(uistat_alterperm);
             }
+            if(ImGui::Button("Remove##level1_detail")){
+
+            }
             ImGui::SameLine();
             if(ImGui::Button("Close##Level1_detail")){
-                currl1e = NULL;
-                CLRSTAT(uistat_level1);
+                if(CHKSTAT(uistat_level2)){
+                    ImGui::BeginPopup("Dependency Check Failure##level1_detail_attempt_close");
+                    ImGui::Text("This window is required by another.");
+                    ImGui::EndPopup();
+                }else{
+                    currl1e = NULL;
+                    currl2e = NULL;
+                    CLRSTAT(uistat_level1);
+                }
             }
             ImGui::Separator();
             ImGui::Columns(8,"SellInfos");
@@ -692,13 +704,140 @@ int main(int argc, char** argv)
                 GUICOLUMNNEXT("%s",le->data.customerName);
                 GUICOLUMNNEXT("%s",le->data.customerId);
                 GUICOLUMNNEXT("%s",le->data.customerTel);
-                GUICOLUMNNEXT("%.2lf",le->data.priceSum);
+                GUICOLUMNNEXT("%.2f",le->data.priceSum);
             }
             ImGui::Columns(1);
             ImGui::End();
         }
         if(CHKSTAT(uistat_level2)){
+            ImGui::Begin("ManagerInterface -- PaymentRecords");
+            ImGui::InputText("CarId",l2buffer.data.carId,20);
+            ImGui::SameLine();
+            ImGui::InputText("CarName",l2buffer.data.carName,20);
+            ImGui::ColorPicker3("Color",&picker);
+            ImGui::SameLine();
+            ImGui::InputText("SellDate",l2buffer.data.selldate,12);
+            ImGui::InputText("CustName",l2buffer.data.customerName,20);
+            ImGui::SameLine();
+            ImGui::InputText("CustId",l2buffer.data.customerId,18);
+            ImGui::SameLine();
+            ImGui::InputText("CustTel",l2buffer.data.customerTel,20);
+            ImGui::InputFloat("Price",&(l2buffer.data.priceSum));
+            if(ImGui::Button("Alter##level2_detail")){
+                Messeage m;
+                m.qid = 1;
+                binary_safe_string tmpbss = qbss_new();
+                qbss_append(tmpbss,(char*)&l2buffer,sizeof(l2buffer));
+                ui entids[3];
+                entids[0]=currl1e->pe.entryid;
+                entids[1]=currl2e->pe.entryid;
+                m.payload=qAssembleAlterDataQuery(uid,gid,2,entids,tmpbss);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+                qbss_destructor(tmpbss);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Show selected details##level2_detail")){
+                if(currl3e != NULL){
+                    SETSTAT(uistat_level3);
+                }else{
+                    ImGui::BeginPopup("Invalid Selection##level2_Detail");
+                    ImGui::Text("Selected entry is invalid.");
+                    ImGui::EndPopup();
+                }
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Append##level2_detail")){
+                SETSTAT(uistat_l3append);
+            }
+            if(ImGui::Button("AlterOwner##level2_detail")){
+                SETSTAT(uistat_alterowner);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("AlterGroup##level2_detail")){
+                SETSTAT(uistat_altergroup);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("AlterPermission##level2_detail")){
+                SETSTAT(uistat_alterperm);
+            }
+            if(ImGui::Button("Remove##level2_detail")){
 
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Close##Level2_detail")){
+                if(CHKSTAT(uistat_level3)){
+                    ImGui::BeginPopup("Dependency Check Failure##level2_detail_attempt_close");
+                    ImGui::Text("This window is required by another.");
+                    ImGui::EndPopup();
+                }else{
+                    currl2e = NULL;
+                    currl3e = NULL;
+                    CLRSTAT(uistat_level2);
+                }
+            }
+            ImGui::Separator();
+            ImGui::Columns(5,"PayRecords");
+            ImGui::Separator();
+            GUICOLUMNNEXT("CarId");
+            GUICOLUMNNEXT("Paydate");
+            GUICOLUMNNEXT("Amount");
+            GUICOLUMNNEXT("Remain");
+            GUICOLUMNNEXT("Seller");
+            ImGui::Separator();
+            qList_foreach(currl2e->ld,iter){
+                Level3Entry *le = (Level3Entry*)iter->data;
+                if(ImGui::Selectable(le->data.carId,currl3e==le,ImGuiSelectableFlags_SpanAllColumns)){
+                    if(currl3e!=NULL){
+                        ImGui::BeginPopup("Selection Conflict##level2_detail");
+                        ImGui::Text("You cannot select another entry while editing one.");
+                        ImGui::EndPopup();
+                    }else{
+                        currl3e=le;
+                    }
+                }
+                ImGui::NextColumn();
+                GUICOLUMNNEXT("%s",le->data.carId);
+                GUICOLUMNNEXT("%s",le->data.paydate);
+                GUICOLUMNNEXT("%.2f",le->data.amount);
+                GUICOLUMNNEXT("%.2f",le->data.remain);
+                GUICOLUMNNEXT("%s",le->data.sellerId);
+            }
+            ImGui::Columns(1);
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_level3)){
+            ImGui::Begin("Manager Window -- Payment Record Details");
+            ImGui::InputText("CarId",l3buffer.data.carId,20);
+            ImGui::SameLine();
+            ImGui::InputText("PayDate",l3buffer.data.paydate,12);
+            ImGui::InputFloat("Amount",&(l3buffer.data.amount));
+            ImGui::SameLine();
+            ImGui::InputFloat("Remains",&(l3buffer.data.remain));
+            ImGui::SameLine();
+            ImGui::InputText("Seller",l3buffer.data.sellerId,20);
+            if(ImGui::Button("Alter##level3_detail")){
+
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("AlterOwner##level3_detail")){
+
+            }
+            if(ImGui::Button("AlterGroup##level3_detail")){
+
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("AlterPermission##level3_detail")){
+
+            }
+            if(ImGui::Button("Remove##level3_detail")){
+
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Close##level3_detail")){
+
+            }
         }
         // Rendering
         int display_w, display_h;

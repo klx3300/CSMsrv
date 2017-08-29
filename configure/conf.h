@@ -14,8 +14,8 @@ struct q_CarType_st{
 struct q_PaymentRecord_st{
     char carId[20];
     char paydate[12]; // arrange like yyyy/mm/dd
-    double amount;
-    double remain;
+    float amount;
+    float remain;
     char sellerId[20];
 };
 
@@ -27,7 +27,7 @@ struct q_SellInfo_st{
     char customerName[20];
     char customerId[18];
     char customerTel[20];
-    double priceSum;
+    float priceSum;
 };
 
 typedef struct q_SellInfo_st Level2;
