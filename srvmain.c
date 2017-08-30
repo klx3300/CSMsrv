@@ -129,9 +129,10 @@ int main(int argc,char** argv){
             fprintf(stderr,"[WARN] creating default administrator group.\n");
             GroupData tmpadmin;
             tmpadmin.gid = 0;
+            memset(tmpadmin.groupname,0,256);
             // notice '\0' at the end of str
             memcpy(tmpadmin.groupname,DEFAULT_ADMIN_GROUPNAME,strlen(DEFAULT_ADMIN_GROUPNAME)+1);
-            qList_push_back(*user,tmpadmin);
+            qList_push_back(*group,tmpadmin);
         }else{
             // unserialize from file
             fprintf(stderr,"[INFO] starting read data from group.dat\n");
@@ -160,6 +161,8 @@ int main(int argc,char** argv){
             tmpadmin.uid = 0;
             tmpadmin.gid = 0;
             // notice '\0' at the end of str
+            memset(tmpadmin.username,0,256);
+            memset(tmpadmin.password,0,256);
             memcpy(tmpadmin.username,DEFAULT_ADMIN_USERNAME,strlen(DEFAULT_ADMIN_USERNAME)+1);
             memcpy(tmpadmin.password,DEFAULT_ADMIN_PASSWORD,strlen(DEFAULT_ADMIN_PASSWORD)+1);
             qList_push_back(*user,tmpadmin);
@@ -349,6 +352,7 @@ void* handle_client(void* clisock_x){
             FLAG_CONT = 0;
             continue;
         }
+        fprintf(stderr,"[INFO] Client %d sent query id %u\n",clisock->desc,queryid);
         switch(queryid){
             case 0:
             {
@@ -557,31 +561,31 @@ void* handle_client(void* clisock_x){
                     if(le->pe.ownerid == q.userId || FLAG_PRIV){
                         // full permission
                         qList_initdesc(tmple.ld);
-                        memcpy(&(le->data),&(tmple.data),sizeof(Level1));
-                        memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                        memcpy(&(tmple.data),&(le->data),sizeof(Level1));
+                        memcpy(&(tmple.pe),&(le->pe),sizeof(PermissionEntry));
                         FLAG_I_RECURSIVE = 1;FLAG_I_SUCC = 1;
                     }else{
                         if(le->pe.groupid == q.groupId){
                             if (le->pe.permission[1] & Q_PERMISSION_R){
                                 qList_initdesc(tmple.ld);
-                                memcpy(&(le->data),&(tmple.data),sizeof(Level1));
-                                memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                                memcpy(&(tmple.data),&(le->data),sizeof(Level1));
+                                memcpy(&(tmple.pe),&(le->pe),sizeof(PermissionEntry));
                                 FLAG_I_RECURSIVE = 1;FLAG_I_SUCC = 1;
                             }else if(le->pe.permission[1] & Q_PERMISSION_C){
                                 qList_initdesc(tmple.ld);
-                                memcpy(&(le->data),&(lv1mask),sizeof(Level1));
-                                memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                                memcpy(&(tmple.data),&(lv1mask),sizeof(Level1));
+                                memcpy(&(tmple.pe),&(lv1mask),sizeof(PermissionEntry));
                                 FLAG_I_SUCC = 1;
                             }
                         }else if(le->pe.permission[2] & Q_PERMISSION_R){
                             qList_initdesc(tmple.ld);
-                            memcpy(&(le->data),&(tmple.data),sizeof(Level1));
-                            memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                            memcpy(&(tmple.data),&(le->data),sizeof(Level1));
+                            memcpy(&(tmple.pe),&(le->pe),sizeof(PermissionEntry));
                             FLAG_I_RECURSIVE = 1;FLAG_I_SUCC = 1;
                         }else if(le->pe.permission[2] & Q_PERMISSION_C){
                             qList_initdesc(tmple.ld);
-                            memcpy(&(le->data),&(lv1mask),sizeof(Level1));
-                            memcpy(&(le->pe),&(tmple.pe),sizeof(PermissionEntry));
+                            memcpy(&(tmple.data),&(lv1mask),sizeof(Level1));
+                            memcpy(&(tmple.pe),&(lv1mask),sizeof(PermissionEntry));
                             FLAG_I_SUCC = 1;
                         }
                     }
@@ -593,31 +597,31 @@ void* handle_client(void* clisock_x){
                             if(lle->pe.ownerid == q.userId || FLAG_PRIV){
                                 // full permission
                                 qList_initdesc(tmplle.ld);
-                                memcpy(&(lle->data),&(tmplle.data),sizeof(Level2));
-                                memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                memcpy(&(tmplle.data),&(lle->data),sizeof(Level2));
+                                memcpy(&(tmplle.pe),&(lle->pe),sizeof(PermissionEntry));
                                 FLAG_II_RECURSIVE = 1;FLAG_II_SUCC = 1;
                             }else{
                                 if(lle->pe.groupid == q.groupId){
                                     if (lle->pe.permission[1] & Q_PERMISSION_R){
                                         qList_initdesc(tmplle.ld);
-                                        memcpy(&(lle->data),&(tmplle.data),sizeof(Level2));
-                                        memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                        memcpy(&(tmplle.data),&(lle->data),sizeof(Level2));
+                                        memcpy(&(tmplle.pe),&(lle->pe),sizeof(PermissionEntry));
                                         FLAG_II_RECURSIVE = 1;FLAG_II_SUCC = 1;
                                     }else if(lle->pe.permission[1] & Q_PERMISSION_C){
                                         qList_initdesc(tmplle.ld);
-                                        memcpy(&(lle->data),&(lv2mask),sizeof(Level2));
-                                        memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                        memcpy(&(tmplle.data),&(lv2mask),sizeof(Level2));
+                                        memcpy(&(tmplle.pe),&(lle->pe),sizeof(PermissionEntry));
                                         FLAG_II_SUCC = 1;
                                     }
                                 }else if(lle->pe.permission[2] & Q_PERMISSION_R){
                                     qList_initdesc(tmplle.ld);
-                                    memcpy(&(lle->data),&(tmplle.data),sizeof(Level2));
-                                    memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                    memcpy(&(tmplle.data),&(lle->data),sizeof(Level2));
+                                    memcpy(&(tmplle.pe),&(lle->pe),sizeof(PermissionEntry));
                                     FLAG_II_RECURSIVE = 1;FLAG_II_SUCC = 1;
                                 }else if(lle->pe.permission[2] & Q_PERMISSION_C){
                                     qList_initdesc(tmplle.ld);
-                                    memcpy(&(lle->data),&(lv2mask),sizeof(Level2));
-                                    memcpy(&(lle->pe),&(tmplle.pe),sizeof(PermissionEntry));
+                                    memcpy(&(tmplle.data),&(lv2mask),sizeof(Level2));
+                                    memcpy(&(tmplle.pe),&(lle->pe),sizeof(PermissionEntry));
                                     FLAG_II_SUCC = 1;
                                 }
                             }
@@ -628,27 +632,27 @@ void* handle_client(void* clisock_x){
                                     ui FLAG_III_SUCC = 0;
                                     if(llle->pe.ownerid == q.userId || FLAG_PRIV){
                                         // full permission
-                                        memcpy(&(llle->data),&(tmpllle.data),sizeof(Level3));
-                                        memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
+                                        memcpy(&(tmpllle.data),&(llle->data),sizeof(Level3));
+                                        memcpy(&(tmpllle.pe),&(llle->pe),sizeof(PermissionEntry));
                                         FLAG_III_SUCC = 1;
                                     }else{
                                         if(llle->pe.groupid == q.groupId){
                                             if (llle->pe.permission[1] & Q_PERMISSION_R){
-                                                memcpy(&(llle->data),&(tmpllle.data),sizeof(Level3));
+                                                memcpy(&(tmpllle.data),&(llle->data),sizeof(Level3));
                                                 memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
                                                 FLAG_III_SUCC = 1;
                                             }else if(llle->pe.permission[1] & Q_PERMISSION_C){
-                                                memcpy(&(llle->data),&(lv3mask),sizeof(Level3));
-                                                memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
+                                                memcpy(&(tmpllle.data),&(lv3mask),sizeof(Level3));
+                                                memcpy(&(tmpllle.pe),&(llle->pe),sizeof(PermissionEntry));
                                                 FLAG_III_SUCC = 1;
                                             }
                                         }else if(llle->pe.permission[2] & Q_PERMISSION_R){
-                                            memcpy(&(llle->data),&(tmpllle.data),sizeof(Level3));
-                                            memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
+                                            memcpy(&(tmpllle.data),&(llle->data),sizeof(Level3));
+                                            memcpy(&(tmpllle.pe),&(llle->pe),sizeof(PermissionEntry));
                                             FLAG_III_SUCC = 1;
                                         }else if(llle->pe.permission[2] & Q_PERMISSION_C){
-                                            memcpy(&(llle->data),&(lv3mask),sizeof(Level2));
-                                            memcpy(&(llle->pe),&(tmpllle.pe),sizeof(PermissionEntry));
+                                            memcpy(&(tmpllle.data),&(lv3mask),sizeof(Level2));
+                                            memcpy(&(tmpllle.pe),&(llle->pe),sizeof(PermissionEntry));
                                             FLAG_III_SUCC = 1;
                                         }
                                     }
@@ -668,6 +672,12 @@ void* handle_client(void* clisock_x){
                 }
                 UNLOCKDATA;
                 qListDescriptor ser_tmprld = qSerialize(&tmprld,sizeof(qListDescriptor));
+                // test only
+                qListDescriptor *tmpurld = qUnserialize(ser_tmprld,YES_IT_IS_A_LIST);
+                qList_foreach(*data,titer){
+                    Level1Entry *le = titer->data;
+                    fprintf(stderr,"%s %s\n",le->data.carId,le->data.carName);
+                }
                 NETWRCHECK(*clisock,qAssembleSyncDataReply(0,ser_tmprld));
                 qList_foreach(ser_tmprld,fiter){
                     binary_safe_string *rf = fiter->data;
@@ -688,7 +698,7 @@ void* handle_client(void* clisock_x){
                     ALLOCID(tmpid,lv1ids,FLAG_SUCC);
                     if(FLAG_SUCC){
                         Level1Entry tmpent;
-                        memcpy(&(tmpent.data),((char*)q)+sizeof(AppendDataQuery),q->datalen);
+                        memcpy(&(tmpent.data),(rcontent.str)+sizeof(AppendDataQuery),q->datalen);
                         qList_initdesc(tmpent.ld);
                         setpe(tmpent.pe,q->userId,q->groupId,tmpid,umask);
                         qList_push_back(*data,tmpent);
@@ -703,7 +713,7 @@ void* handle_client(void* clisock_x){
                                     ALLOCID(tmpid,lv2ids,FLAG_SUCC);
                                     if(FLAG_SUCC){
                                         Level2Entry tmpent;
-                                        memcpy(&(tmpent.data),((char*)q)+sizeof(AppendDataQuery),q->datalen);
+                                        memcpy(&(tmpent.data),(rcontent.str)+sizeof(AppendDataQuery),q->datalen);
                                         qList_initdesc(tmpent.ld);
                                         setpe(tmpent.pe,q->userId,q->groupId,tmpid,umask);
                                         qList_push_back(le->ld,tmpent);
@@ -718,7 +728,7 @@ void* handle_client(void* clisock_x){
                                             ALLOCID(tmpid,lv3ids,FLAG_SUCC);
                                             if(FLAG_SUCC){
                                                 Level3Entry tmpent;
-                                                memcpy(&(tmpent.data),((char*)q)+sizeof(AppendDataQuery),q->datalen);
+                                                memcpy(&(tmpent.data),(rcontent.str)+sizeof(AppendDataQuery),q->datalen);
                                                 setpe(tmpent.pe,q->userId,q->groupId,tmpid,umask);
                                                 qList_push_back(lle->ld,tmpent);
                                             }
@@ -804,7 +814,7 @@ void* handle_client(void* clisock_x){
                         // found
                         if(q->entryLvl == 0 ){
                             if((checkperm(le->pe,q->userId,q->groupId) & Q_PERMISSION_W) || FLAG_PRIV){
-                                memcpy(&(le->data),((char*)q)+sizeof(AlterDataQuery),q->datalen);
+                                memcpy(&(le->data),(rcontent.str)+sizeof(AlterDataQuery),q->datalen);
                                 FLAG_SUCC = 1;
                             }
                         }else if((checkperm(le->pe,q->userId,q->groupId) & Q_PERMISSION_R) || FLAG_PRIV){
@@ -813,7 +823,7 @@ void* handle_client(void* clisock_x){
                                 if(lle->pe.entryid == q->entryIds[1]){
                                     if(q->entryLvl == 2){
                                         if((checkperm(lle->pe,q->userId,q->groupId) & Q_PERMISSION_W) || FLAG_PRIV){
-                                            memcpy(&(lle->data),((char*)q)+sizeof(AlterDataQuery),q->datalen);
+                                            memcpy(&(lle->data),(rcontent.str)+sizeof(AlterDataQuery),q->datalen);
                                             FLAG_SUCC = 1;
                                         }
                                     }else if((checkperm(lle->pe,q->userId,q->groupId)&Q_PERMISSION_R)||FLAG_PRIV){
@@ -821,7 +831,7 @@ void* handle_client(void* clisock_x){
                                             Level3Entry *llle = iiiter->data;
                                             if(llle->pe.entryid == q->entryIds[2]){
                                                 if((checkperm(llle->pe,q->userId,q->groupId) & Q_PERMISSION_W) || FLAG_PRIV){
-                                                    memcpy(&(llle->data),((char*)q)+sizeof(AlterDataQuery),q->datalen);
+                                                    memcpy(&(llle->data),(rcontent.str)+sizeof(AlterDataQuery),q->datalen);
                                                     FLAG_SUCC = 1;
                                                 }
                                                 break;
@@ -1005,6 +1015,7 @@ void* handle_client(void* clisock_x){
         }
         qbss_destructor(rcontent);
     }
+    fprintf(stderr,"[INFO] Client %d disconnected.\n",clisock->desc);
     connclock.lock(connclock);
     cliconns --;
     connclock.unlock(connclock);

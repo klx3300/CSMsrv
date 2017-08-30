@@ -118,13 +118,19 @@ struct q__ListDescriptor q__list_unserialize(struct q__ListDescriptor dataset,qM
                 qListDescriptor *tmpldrefr = (qListDescriptor*)tmpdata;
                 qListDescriptor *tmpsister = NULL;
                 if(prefix_num == 0){
-                    tmpsister = q__Map_ptr_at(previous_data,&tmpcnt,sizeof(unsigned int),q__uhashf)->value;
+                    qMapData *tmpmd = q__Map_ptr_at(previous_data,&tmpcnt,sizeof(unsigned int),q__uhashf);
+                    if(tmpmd != NULL){
+                        tmpsister = tmpmd->value;
+                    }
                 }else{
                     // construct temporary combination
                     binary_safe_string tmpsearcher = qbss_new();
                     qbss_append(tmpsearcher,tmprefix.str,tmprefix.size);
                     qbss_append(tmpsearcher,(char*)&tmpcnt,sizeof(tmpcnt));
-                    tmpsister = q__Map_ptr_at(previous_data,tmpsearcher.str,tmpsearcher.size,q__uhashf)->value;
+                    qMapData *tmpmd = q__Map_ptr_at(previous_data,tmpsearcher.str,tmpsearcher.size,q__uhashf);
+                    if(tmpmd != NULL){
+                        tmpsister = tmpmd->value;
+                    }
                     qbss_destructor(tmpsearcher);
                 }
                     // or perhaps i am an orphan. that's ... not so bad

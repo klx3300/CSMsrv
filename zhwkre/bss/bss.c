@@ -13,7 +13,7 @@ binary_safe_string qbss_new(){
 
 void q__bss_append(binary_safe_string* bss,char* str,unsigned int len){
     // check capacity
-    if(bss->capacity<2*(bss->size+len)){
+    while(bss->capacity<2*(bss->size+len)){
         // realloc
         char* tmp = malloc(2*(bss->capacity));
         memset(tmp,0,2*(bss->capacity));

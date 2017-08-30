@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "../zhwkre/network.h"
 #include "../advanced_network/advanced_network.h"
+#include "../protocol/protocol.h"
 
 qListDescriptor ui_notifier,network_notifier;
 qMutex ui_noti_lock,net_noti_lock;
@@ -50,6 +51,8 @@ void* handle_network(void* params){
         LOCKNET;
         if(network_notifier.size != 0){
             Messeage *curr = network_notifier.head->data;
+            UniversalHeader *uh = (UniversalHeader*)curr->payload.str;
+            fprintf(stderr,"[CURR%u]Attempt to send request len %u qid %u.\n",curr->qid,uh->size,uh->queryid);
             switch(curr->qid){
                 case 0:
                 {
@@ -72,14 +75,15 @@ void* handle_network(void* params){
                     // normal query
                     NETWRCHECK(sock,curr->payload);
                 }
+                break;
                 default:
                 RUNNING = 0;
                 break;
             }
-            qbss_destructor(curr->payload);
             qList_pop_front(network_notifier);
         }
         UNLOCKNET;
     }
+    fprintf(stderr,"Network handler stopped.\n");
     return NULL;
 }

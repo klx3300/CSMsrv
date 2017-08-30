@@ -23,7 +23,7 @@ extern "C"{
 
 #define PUSH(num) (((ui)1)<<(num))
 #define SETSTAT(stat) (curr_status |= (stat))
-#define CLRSTAT(stat) (curr_status &= ~(stat))
+#define CLRSTAT(stat) (curr_status = curr_status & (~(stat)))
 #define CHKSTAT(stat) (curr_status & (stat))
 #define RSTSTAT (curr_status & ((ui)0))
 
@@ -104,6 +104,7 @@ int main(int argc, char** argv)
         Level1Entry *currl1e=NULL;Level2Entry *currl2e=NULL;Level3Entry *currl3e=NULL;
         Level1Entry l1buffer;Level2Entry l2buffer;Level3Entry l3buffer;
         unsigned char destperm[3];
+        const char* dispstr=NULL;
         // setup basic envirs
     {
         SETSTAT(uistat_login);
@@ -137,6 +138,7 @@ int main(int argc, char** argv)
                 case 0:
                 {
                     LoginReply r = qDisassembleLoginReply(msg->payload);
+                    CLRSTAT(uistat_process_login);
                     if(!(r.errNo)){
                         // succ
                         uid = r.userId;
@@ -145,9 +147,7 @@ int main(int argc, char** argv)
                         SETSTAT(uistat_syncdata);
                         SETDIRT(uistat_syncdata);
                     }else{
-                        ImGui::BeginPopup("Fatal Error##on_authentication_error");
-                        ImGui::Text("Autentication Error.");
-                        ImGui::EndPopup();
+                        dispstr = "Autentication Error.";
                         RSTSTAT;
                         SETSTAT(uistat_login);
                     }
@@ -159,14 +159,10 @@ int main(int argc, char** argv)
                     if(!(r.errNo)){
                         CLRSTAT(uistat_alterpass);
                         memcpy(passwordbuffer,alterpassbuffer,256);
-                        ImGui::BeginPopup("Success##on_password_alter_succ");
-                        ImGui::Text("Password Alternation Success.");
-                        ImGui::EndPopup();
+                        dispstr = "Password Alternation Success.";
                     }else{
                         CLRSTAT(uistat_alterpass);
-                        ImGui::BeginPopup("Failed##on_password_alter_fail");
-                        ImGui::Text("Password Alternation Failed.");
-                        ImGui::EndPopup();
+                        dispstr = "Password Alternation Failed.";
                     }
                 }
                 break;
@@ -178,9 +174,7 @@ int main(int argc, char** argv)
                         SETSTAT(uistat_showgroup);
                     }else{
                         CLRSTAT(uistat_syncgroup);
-                        ImGui::BeginPopup("Failed##on_group_sync_failed");
-                        ImGui::Text("List Group Failed -- Permission DENIED.");
-                        ImGui::EndPopup();
+                        dispstr = ("List Group Failed -- Permission DENIED.");
                     }
                 }
                 break;
@@ -188,13 +182,9 @@ int main(int argc, char** argv)
                 {
                     AlterGroupReply r = qDisassembleAlterGroupReply(msg->payload);
                     if(!(r.errNo)){
-                        ImGui::BeginPopup("Success##on_group_alter_success");
-                        ImGui::Text("Alter Group Success.");
-                        ImGui::EndPopup();
+                        dispstr = ("Alter Group Success.");
                     }else{
-                        ImGui::BeginPopup("Failed##on_group_alter_failed");
-                        ImGui::Text("Alter Group Failed.Permission Denied.");
-                        ImGui::EndPopup();
+                        dispstr = ("Alter Group Failed.Permission Denied.");
                     }
                 }
                 break;
@@ -203,13 +193,9 @@ int main(int argc, char** argv)
                     RemoveUserReply r = qDisassembleRemoveUserReply(msg->payload);
                     if(!(r.errNo)){
                         CLRSTAT(uistat_showuser);
-                        ImGui::BeginPopup("Success##on_user_remove_success");
-                        ImGui::Text("Remove User Success.");
-                        ImGui::EndPopup();
+                        dispstr = ("Remove User Success.");
                     }else{
-                        ImGui::BeginPopup("Failed##on_user_remove_failed");
-                        ImGui::Text("Remove User Failed.");
-                        ImGui::EndPopup();
+                        dispstr = ("Remove User Failed.");
                     }
                 }
                 break;
@@ -218,13 +204,9 @@ int main(int argc, char** argv)
                     RemoveGroupReply r = qDisassembleRemoveGroupReply(msg->payload);
                     if(!(r.errNo)){
                         CLRSTAT(uistat_showgroup);
-                        ImGui::BeginPopup("Success##on_group_remove_success");
-                        ImGui::Text("Remove Group Success.");
-                        ImGui::EndPopup();
+                        dispstr = ("Remove Group Success.");
                     }else{
-                        ImGui::BeginPopup("Failed##on_group_remove_failed");
-                        ImGui::Text("Remove Group Failed.");
-                        ImGui::EndPopup();
+                        dispstr = ("Remove Group Failed.");
                     }
                 }
                 break;
@@ -236,9 +218,7 @@ int main(int argc, char** argv)
                         SETSTAT(uistat_showuser);
                     }else{
                         CLRSTAT(uistat_syncuser);
-                        ImGui::BeginPopup("Failed##on_sync_user_failed");
-                        ImGui::Text("List User Failed. Permission DENIED.");
-                        ImGui::EndPopup();
+                        dispstr = ("List User Failed. Permission DENIED.");
                     }
                 }
                 break;
@@ -281,8 +261,7 @@ int main(int argc, char** argv)
                         }else{
                             CLRSTAT(uistat_l1append);
                         }
-                        ImGui::BeginPopup("FAIL##on_append_entry_fail");
-                        ImGui::Text("Append Entry failed. Error Number is %d",r.errNo);
+                        dispstr = ("Append Entry Failed.");
                     }
                 }
                 break;
@@ -328,9 +307,7 @@ int main(int argc, char** argv)
                             currl1e = NULL;
                         }
                     }else{
-                        ImGui::BeginPopup("FAIL##on_remove_entry_failed");
-                        ImGui::Text("Remove Entry failed. Error code is %d.",r.errNo);
-                        ImGui::EndPopup();
+                        dispstr = ("Remove Entry failed.");
                     }
                 }
                 break;
@@ -346,9 +323,7 @@ int main(int argc, char** argv)
                             memcpy(&(currl1e->data),&(l1buffer.data),sizeof(Level1));
                         }
                     }else{
-                        ImGui::BeginPopup("FAIL##on_alter_entry_failed");
-                        ImGui::Text("Alter Entry failed. Error code is %d.",r.errNo);
-                        ImGui::EndPopup();
+                        dispstr = ("Alter Entry failed.");
                     }
                 }
                 break;
@@ -365,9 +340,7 @@ int main(int argc, char** argv)
                             currl1e->pe.ownerid = destuid;
                         }
                     }else{
-                        ImGui::BeginPopup("FAIL##on_alter_owner_fail");
-                        ImGui::Text("Alter Entry Owner failed. Error code is %d",r.errNo);
-                        ImGui::EndPopup();
+                        dispstr = ("Alter Entry Owner failed.");
                     }
                 }
                 break;
@@ -384,9 +357,7 @@ int main(int argc, char** argv)
                             currl1e->pe.groupid = destgid;
                         }
                     }else{
-                        ImGui::BeginPopup("FAIL##on_alter_group_fail");
-                        ImGui::Text("Alter Entry Group failed. Error code is %d",r.errNo);
-                        ImGui::EndPopup();
+                        dispstr = ("Alter Entry Group failed.");
                     }
                 }
                 break;
@@ -403,21 +374,18 @@ int main(int argc, char** argv)
                             memcpy(currl1e->pe.permission,destperm,3*sizeof(unsigned char));
                         }
                     }else{
-                        ImGui::BeginPopup("FAIL##on_alter_owner_fail");
-                        ImGui::Text("Alter Entry Owner failed. Error code is %d",r.errNo);
-                        ImGui::EndPopup();
+                        dispstr = ("Alter Entry Owner failed.");
                     }
                 }
                 break;
                 default:
                 {
-                    ImGui::BeginPopup("UNEXPECTED BEHAVIOR##on_receive_unknown_qid");
-                    ImGui::Text("Program control flow reached unexpected part. qid is %d",msg->qid);
-                    ImGui::EndPopup();
+                    dispstr = ("Program control flow reached unexpected part.");
                 }
                 break;
             }
             qbss_destructor(msg->payload);
+            qList_pop_front(ui_notifier);
         }
         UNLOCKUI;
         /* references
@@ -450,7 +418,11 @@ int main(int argc, char** argv)
                 ImGui::ShowTestWindow(&show_test_window);
             }
         }*/
-
+        ImGui::Begin("Current Status##currstat");
+        if(dispstr != NULL){
+            ImGui::Text("%s",dispstr);
+        }
+        ImGui::End();
         if(CHKSTAT(uistat_login)){
             ImGui::Begin("Login or Register##login_ui");
             ImGui::Text("Server format: 127.0.0.1:1992");
@@ -535,9 +507,7 @@ int main(int argc, char** argv)
                 if(uid == 0)
                     SETSTAT(uistat_admin);
                 else{
-                    ImGui::BeginPopup("FAIL##on_open_admin_panel");
-                    ImGui::Text("Permission Denied.");
-                    ImGui::EndPopup();
+                    dispstr = ("Permission Denied.");
                 }
             }
             if(ImGui::Button("Append")){
@@ -547,9 +517,7 @@ int main(int argc, char** argv)
                 if(currl1e != NULL){
                     SETSTAT(uistat_level1);
                 }else{
-                    ImGui::BeginPopup("Selection Invalid##main");
-                    ImGui::Text("Selected entry is invalid.");
-                    ImGui::EndPopup();
+                    dispstr = ("Selected entry is invalid.");
                 }
             }
             ImGui::Columns(7,"CarTypes");
@@ -566,9 +534,7 @@ int main(int argc, char** argv)
                 Level1Entry *le = (Level1Entry*)iter->data;
                 if(ImGui::Selectable(le->data.carId,currl1e == le, ImGuiSelectableFlags_SpanAllColumns)){
                     if(currl2e != NULL){
-                        ImGui::BeginPopup("Selection Conflict##level1_selection_conflict");
-                        ImGui::Text("You cannot select another while editing one.");
-                        ImGui::EndPopup();
+                        dispstr = ("You cannot select another while editing one.");
                     }else{
                         currl1e = le;
                     }
@@ -601,34 +567,29 @@ int main(int argc, char** argv)
                     qbss_destructor(tmpbss);
                 }else{
                     CLRSTAT(uistat_alterpass);
-                    ImGui::BeginPopup("FAIL##on_alter_pass_fail");
-                    ImGui::Text("Original password is incorrect.");
-                    ImGui::EndPopup();
+                    dispstr = ("Original password is incorrect.");
                 }
             }
             ImGui::SameLine();
             if(ImGui::Button("Cancel##alter_pass")){
                 CLRSTAT(uistat_alterpass);
             }
+            ImGui::End();
         }
         if(CHKSTAT(uistat_level1)){
             ImGui::Begin("ManagerInterface -- SellInfos");
             ImGui::InputText("CarId",l1buffer.data.carId,20);
-            ImGui::SameLine();
             ImGui::InputText("CarName",l1buffer.data.carName,20);
             ImGui::InputInt("Weight",&(l1buffer.data.weight));
-            ImGui::SameLine();
             ImGui::InputInt("SeatNum",&(l1buffer.data.seatNum));
             ImGui::InputInt("Length",&(l1buffer.data.length));
-            ImGui::SameLine();
             ImGui::InputInt("Width",&(l1buffer.data.width));
-            ImGui::SameLine();
             ImGui::InputInt("Height",&(l1buffer.data.height));
             if(ImGui::Button("Alter##level1_detail")){
                 Messeage m;
                 m.qid = 1;
                 binary_safe_string tmpbss = qbss_new();
-                qbss_append(tmpbss,(char*)&l1buffer,sizeof(l1buffer));
+                qbss_append(tmpbss,(char*)&(l1buffer.data),sizeof(l1buffer.data));
                 ui entids[3];
                 entids[0]=currl1e->pe.entryid;
                 m.payload = qAssembleAlterDataQuery(uid,gid,0,entids,tmpbss);
@@ -642,9 +603,7 @@ int main(int argc, char** argv)
                 if(currl2e != NULL){
                     SETSTAT(uistat_level2);
                 }else{
-                    ImGui::BeginPopup("Invalid Selection##level1_detail");
-                    ImGui::Text("Selected entry is invalid.");
-                    ImGui::EndPopup();
+                    dispstr = ("Selected entry is invalid.");
                 }
             }
             ImGui::SameLine();
@@ -675,9 +634,7 @@ int main(int argc, char** argv)
             ImGui::SameLine();
             if(ImGui::Button("Close##Level1_detail")){
                 if(CHKSTAT(uistat_level2)){
-                    ImGui::BeginPopup("Dependency Check Failure##level1_detail_attempt_close");
-                    ImGui::Text("This window is required by another.");
-                    ImGui::EndPopup();
+                    dispstr = ("This window is required by another.");
                 }else{
                     currl1e = NULL;
                     currl2e = NULL;
@@ -700,9 +657,7 @@ int main(int argc, char** argv)
                 Level2Entry *le = (Level2Entry*)iter->data;
                 if(ImGui::Selectable(le->data.carId,currl2e == le,ImGuiSelectableFlags_SpanAllColumns)){
                     if(currl3e != NULL){
-                        ImGui::BeginPopup("Selection Conflict##level2_selection_conflict");
-                        ImGui::Text("You cannot select another while editing one.");
-                        ImGui::EndPopup();
+                        dispstr = ("You cannot select another while editing one.");
                     }else{
                         currl2e = le;
                     }
@@ -723,22 +678,18 @@ int main(int argc, char** argv)
         if(CHKSTAT(uistat_level2)){
             ImGui::Begin("ManagerInterface -- PaymentRecords");
             ImGui::InputText("CarId",l2buffer.data.carId,20);
-            ImGui::SameLine();
             ImGui::InputText("CarName",l2buffer.data.carName,20);
             ImGui::ColorPicker3("Color",&picker);
-            ImGui::SameLine();
             ImGui::InputText("SellDate",l2buffer.data.selldate,12);
             ImGui::InputText("CustName",l2buffer.data.customerName,20);
-            ImGui::SameLine();
             ImGui::InputText("CustId",l2buffer.data.customerId,18);
-            ImGui::SameLine();
             ImGui::InputText("CustTel",l2buffer.data.customerTel,20);
             ImGui::InputFloat("Price",&(l2buffer.data.priceSum));
             if(ImGui::Button("Alter##level2_detail")){
                 Messeage m;
                 m.qid = 1;
                 binary_safe_string tmpbss = qbss_new();
-                qbss_append(tmpbss,(char*)&l2buffer,sizeof(l2buffer));
+                qbss_append(tmpbss,(char*)&(l2buffer.data),sizeof(l2buffer.data));
                 ui entids[3];
                 entids[0]=currl1e->pe.entryid;
                 entids[1]=currl2e->pe.entryid;
@@ -753,9 +704,7 @@ int main(int argc, char** argv)
                 if(currl3e != NULL){
                     SETSTAT(uistat_level3);
                 }else{
-                    ImGui::BeginPopup("Invalid Selection##level2_Detail");
-                    ImGui::Text("Selected entry is invalid.");
-                    ImGui::EndPopup();
+                    dispstr = ("Selected entry is invalid.");
                 }
             }
             ImGui::SameLine();
@@ -787,9 +736,7 @@ int main(int argc, char** argv)
             ImGui::SameLine();
             if(ImGui::Button("Close##Level2_detail")){
                 if(CHKSTAT(uistat_level3)){
-                    ImGui::BeginPopup("Dependency Check Failure##level2_detail_attempt_close");
-                    ImGui::Text("This window is required by another.");
-                    ImGui::EndPopup();
+                    dispstr = ("This window is required by another.");
                 }else{
                     currl2e = NULL;
                     currl3e = NULL;
@@ -809,15 +756,12 @@ int main(int argc, char** argv)
                 Level3Entry *le = (Level3Entry*)iter->data;
                 if(ImGui::Selectable(le->data.carId,currl3e==le,ImGuiSelectableFlags_SpanAllColumns)){
                     if(currl3e!=NULL){
-                        ImGui::BeginPopup("Selection Conflict##level2_detail");
-                        ImGui::Text("You cannot select another entry while editing one.");
-                        ImGui::EndPopup();
+                        dispstr = ("You cannot select another entry while editing one.");
                     }else{
                         currl3e=le;
                     }
                 }
                 ImGui::NextColumn();
-                GUICOLUMNNEXT("%s",le->data.carId);
                 GUICOLUMNNEXT("%s",le->data.paydate);
                 GUICOLUMNNEXT("%.2f",le->data.amount);
                 GUICOLUMNNEXT("%.2f",le->data.remain);
@@ -829,17 +773,14 @@ int main(int argc, char** argv)
         if(CHKSTAT(uistat_level3)){
             ImGui::Begin("Manager Window -- Payment Record Details");
             ImGui::InputText("CarId",l3buffer.data.carId,20);
-            ImGui::SameLine();
             ImGui::InputText("PayDate",l3buffer.data.paydate,12);
             ImGui::InputFloat("Amount",&(l3buffer.data.amount));
-            ImGui::SameLine();
             ImGui::InputFloat("Remains",&(l3buffer.data.remain));
-            ImGui::SameLine();
             ImGui::InputText("Seller",l3buffer.data.sellerId,20);
             if(ImGui::Button("Alter##level3_detail")){
                 Messeage m;
                 binary_safe_string tmpbss = qbss_new();
-                qbss_append(tmpbss,(char*)&l3buffer,sizeof(l3buffer));
+                qbss_append(tmpbss,(char*)&(l3buffer.data),sizeof(l3buffer.data));
                 ui entids[3];
                 entids[0]=currl1e->pe.entryid;
                 entids[1]=currl2e->pe.entryid;
@@ -933,7 +874,6 @@ int main(int argc, char** argv)
                 CLRSTAT(uistat_showgroup);
             }
             ImGui::InputInt("group id",(int*)&destrmgid);
-            ImGui::SameLine();
             if(ImGui::Button("Remove")){
                 Messeage m;
                 m.qid = 1;
@@ -971,7 +911,6 @@ int main(int argc, char** argv)
                 CLRSTAT(uistat_showuser);
             }
             ImGui::InputInt("user id",(int*)&destrmuid);
-            ImGui::SameLine();
             if(ImGui::Button("Remove")){
                 Messeage m;
                 m.qid = 1;
@@ -999,21 +938,17 @@ int main(int argc, char** argv)
         if(CHKSTAT(uistat_l1append)){
             ImGui::Begin("Append Data##l1append");
             ImGui::InputText("CarId",l1buffer.data.carId,20);
-            ImGui::SameLine();
             ImGui::InputText("CarName",l1buffer.data.carName,20);
             ImGui::InputInt("Weight",&(l1buffer.data.weight));
-            ImGui::SameLine();
             ImGui::InputInt("SeatNum",&(l1buffer.data.seatNum));
             ImGui::InputInt("Length",&(l1buffer.data.length));
-            ImGui::SameLine();
             ImGui::InputInt("Width",&(l1buffer.data.width));
-            ImGui::SameLine();
             ImGui::InputInt("Height",&(l1buffer.data.height));
             if(ImGui::Button("Append##level1_append")){
                 Messeage m;
                 m.qid = 1;
                 binary_safe_string tmpbss = qbss_new();
-                qbss_append(tmpbss,(char*)&l1buffer,sizeof(l1buffer));
+                qbss_append(tmpbss,(char*)&(l1buffer.data),sizeof(l1buffer.data));
                 ui entids[3];
                 m.payload = qAssembleAppendDataQuery(uid,gid,0,entids,tmpbss);
                 LOCKNET;
@@ -1030,22 +965,18 @@ int main(int argc, char** argv)
         if(CHKSTAT(uistat_l2append)){
             ImGui::Begin("Append Data##l2append");
             ImGui::InputText("CarId",l2buffer.data.carId,20);
-            ImGui::SameLine();
             ImGui::InputText("CarName",l2buffer.data.carName,20);
             ImGui::ColorPicker3("Color",&picker);
-            ImGui::SameLine();
             ImGui::InputText("SellDate",l2buffer.data.selldate,12);
             ImGui::InputText("CustName",l2buffer.data.customerName,20);
-            ImGui::SameLine();
             ImGui::InputText("CustId",l2buffer.data.customerId,18);
-            ImGui::SameLine();
             ImGui::InputText("CustTel",l2buffer.data.customerTel,20);
             ImGui::InputFloat("Price",&(l2buffer.data.priceSum));
             if(ImGui::Button("Append##level2_append")){
                 Messeage m;
                 m.qid = 1;
                 binary_safe_string tmpbss = qbss_new();
-                qbss_append(tmpbss,(char*)&l2buffer,sizeof(l2buffer));
+                qbss_append(tmpbss,(char*)&(l2buffer.data),sizeof(l2buffer.data));
                 ui entids[3];
                 entids[0] = currl1e->pe.entryid;
                 m.payload = qAssembleAppendDataQuery(uid,gid,1,entids,tmpbss);
@@ -1063,18 +994,15 @@ int main(int argc, char** argv)
         if(CHKSTAT(uistat_l3append)){
             ImGui::Begin("Append Data##l3append");
             ImGui::InputText("CarId",l3buffer.data.carId,20);
-            ImGui::SameLine();
             ImGui::InputText("PayDate",l3buffer.data.paydate,12);
             ImGui::InputFloat("Amount",&(l3buffer.data.amount));
-            ImGui::SameLine();
             ImGui::InputFloat("Remains",&(l3buffer.data.remain));
-            ImGui::SameLine();
             ImGui::InputText("Seller",l3buffer.data.sellerId,20);
             if(ImGui::Button("Append##level3_append")){
                 Messeage m;
                 m.qid = 1;
                 binary_safe_string tmpbss = qbss_new();
-                qbss_append(tmpbss,(char*)&l3buffer,sizeof(l3buffer));
+                qbss_append(tmpbss,(char*)&(l3buffer.data),sizeof(l3buffer.data));
                 ui entids[3];
                 entids[0]=currl1e->pe.entryid;
                 entids[1]=currl2e->pe.entryid;

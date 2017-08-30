@@ -16,7 +16,7 @@ ECHO_PROG := echo
 # maybe you want the output to be printed to somewhere else.
 # perhaps some network place?
 # ECHO_PROG := network_echo some_server:some_port
-CFLAGS := -pthread
+CFLAGS := -g -pthread
 CXXFLAGS := -g `pkg-config --cflags glfw3` $(CFLAGS)
 # perhaps you wish to use some compiler flags.
 # don't hesitate to add stuff here.
