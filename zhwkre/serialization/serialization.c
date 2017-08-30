@@ -74,7 +74,7 @@ struct q__ListDescriptor qSerialize(void* data,unsigned int len){
 }
 
 // not proven very effective.
-unsigned int uhashf(void* str,unsigned int size){
+unsigned int q__uhashf(void* str,unsigned int size){
     unsigned int tmpr = 0;
     unsigned char* cstr = str;
     for(unsigned int i=0;i<size;i++){
@@ -118,13 +118,13 @@ struct q__ListDescriptor q__list_unserialize(struct q__ListDescriptor dataset,qM
                 qListDescriptor *tmpldrefr = (qListDescriptor*)tmpdata;
                 qListDescriptor *tmpsister = NULL;
                 if(prefix_num == 0){
-                    tmpsister = q__Map_ptr_at(previous_data,&tmpcnt,sizeof(unsigned int),uhashf)->value;
+                    tmpsister = q__Map_ptr_at(previous_data,&tmpcnt,sizeof(unsigned int),q__uhashf)->value;
                 }else{
                     // construct temporary combination
                     binary_safe_string tmpsearcher = qbss_new();
                     qbss_append(tmpsearcher,tmprefix.str,tmprefix.size);
                     qbss_append(tmpsearcher,(char*)&tmpcnt,sizeof(tmpcnt));
-                    tmpsister = q__Map_ptr_at(previous_data,tmpsearcher.str,tmpsearcher.size,uhashf)->value;
+                    tmpsister = q__Map_ptr_at(previous_data,tmpsearcher.str,tmpsearcher.size,q__uhashf)->value;
                     qbss_destructor(tmpsearcher);
                 }
                     // or perhaps i am an orphan. that's ... not so bad
@@ -138,7 +138,7 @@ struct q__ListDescriptor q__list_unserialize(struct q__ListDescriptor dataset,qM
             if(prefix_num != 0){
                 // my siblings -- they might have been in this world for a long time.
                 // lets find that out their house's address.
-                qMapData* tmpaddress = q__Map_ptr_at(&lists,tmprefix.str,tmprefix.size,uhashf);
+                qMapData* tmpaddress = q__Map_ptr_at(&lists,tmprefix.str,tmprefix.size,q__uhashf);
                 // is there living anyone?
                 if(tmpaddress != NULL){
                     // another good endings again.
@@ -151,7 +151,7 @@ struct q__ListDescriptor q__list_unserialize(struct q__ListDescriptor dataset,qM
                     qList_initdesc(tmphouse);
                     q__List_push_back(&tmphouse,tmpdata,tmpsize);
                     // register in local address book.
-                    q__Map_insert(&lists,tmprefix.str,&tmphouse,tmprefix.size,sizeof(qListDescriptor),uhashf);
+                    q__Map_insert(&lists,tmprefix.str,&tmphouse,tmprefix.size,sizeof(qListDescriptor),q__uhashf);
                 }
             }
             if(prefix_num == 0) q__List_push_back(&itemslist,tmpdata,tmpsize);
