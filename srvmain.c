@@ -66,6 +66,8 @@ fprintf(stderr,"[WARN] Network error occurrred while writing to sockfd %d\n",(so
     for((idvar)=0;(idvar)<100000000;(idvar)++){\
         if(mapseek((idmap),(idvar))==NULL){\
             (succflag) = 1;\
+            char tmpyes=1;\
+            mapinsert(idmap,idvar,tmpyes);\
             break;\
         }\
     }}while(0)
@@ -676,7 +678,13 @@ void* handle_client(void* clisock_x){
                 qListDescriptor *tmpurld = qUnserialize(ser_tmprld,YES_IT_IS_A_LIST);
                 qList_foreach(*data,titer){
                     Level1Entry *le = titer->data;
-                    fprintf(stderr,"%s %s\n",le->data.carId,le->data.carName);
+                    fprintf(stderr,"%u %s %s\n",le->pe.entryid,le->data.carId,le->data.carName);
+                    if(le->ld.size != 0){
+                        qList_foreach(le->ld,tiiter){
+                            Level2Entry *lle = tiiter->data;
+                            fprintf(stderr,"    %u %s %s\n",lle->pe.entryid,lle->data.carId,lle->data.carName);
+                        }
+                    }
                 }
                 NETWRCHECK(*clisock,qAssembleSyncDataReply(0,ser_tmprld));
                 qList_foreach(ser_tmprld,fiter){
@@ -771,7 +779,7 @@ void* handle_client(void* clisock_x){
                             qList_foreach(le->ld,iiter){
                                 Level2Entry *lle = iiter->data;
                                 if(lle->pe.entryid == q.entryIds[1]){
-                                    if(q.entryLvl == 2){
+                                    if(q.entryLvl == 1){
                                         if((checkperm(lle->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
                                             qList_destructor(lle->ld);
                                             qList_erase_elem(le->ld,iiter);
@@ -821,7 +829,7 @@ void* handle_client(void* clisock_x){
                             qList_foreach(le->ld,iiter){
                                 Level2Entry *lle = iiter->data;
                                 if(lle->pe.entryid == q->entryIds[1]){
-                                    if(q->entryLvl == 2){
+                                    if(q->entryLvl == 1){
                                         if((checkperm(lle->pe,q->userId,q->groupId) & Q_PERMISSION_W) || FLAG_PRIV){
                                             memcpy(&(lle->data),(rcontent.str)+sizeof(AlterDataQuery),q->datalen);
                                             FLAG_SUCC = 1;
@@ -871,7 +879,7 @@ void* handle_client(void* clisock_x){
                             qList_foreach(le->ld,iiter){
                                 Level2Entry *lle = iiter->data;
                                 if(lle->pe.entryid == q.entryIds[1]){
-                                    if(q.entryLvl == 2){
+                                    if(q.entryLvl == 1){
                                         if((checkperm(lle->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
                                             lle->pe.ownerid = q.destuid;
                                             FLAG_SUCC = 1;
@@ -920,7 +928,7 @@ void* handle_client(void* clisock_x){
                             qList_foreach(le->ld,iiter){
                                 Level2Entry *lle = iiter->data;
                                 if(lle->pe.entryid == q.entryIds[1]){
-                                    if(q.entryLvl == 2){
+                                    if(q.entryLvl == 1){
                                         if((checkperm(lle->pe,q.userId,q.groupId) & Q_PERMISSION_W) || FLAG_PRIV){
                                             lle->pe.groupid = q.destgid;
                                             FLAG_SUCC = 1;
@@ -969,7 +977,7 @@ void* handle_client(void* clisock_x){
                             qList_foreach(le->ld,iiter){
                                 Level2Entry *lle = iiter->data;
                                 if(lle->pe.entryid == q.entryIds[1]){
-                                    if(q.entryLvl == 2){
+                                    if(q.entryLvl == 1){
                                         if((checkperm(lle->pe,q.userId,q.groupid) & Q_PERMISSION_W) || FLAG_PRIV){
                                             memcpy(le->pe.permission,q.permission,permsize);
                                             FLAG_SUCC = 1;

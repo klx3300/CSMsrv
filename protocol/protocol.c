@@ -34,6 +34,8 @@ binary_safe_string qAssembleLoginQuery(unsigned int isRegister,binary_safe_strin
 LoginQuery qDisassembleLoginQuery(binary_safe_string input){
     LoginQuery lq;
     MEMCPYINIT(lq,input);
+    memset(lq.username+lq.username_len,0,256-lq.username_len);
+    memset(lq.password+lq.password_len,0,256-lq.password_len);
     return lq;
 }
 
@@ -354,6 +356,7 @@ qListDescriptor qDisassembleSyncDataReply(binary_safe_string input){
         unsigned int tmpsize = *(unsigned int*)refr;
         refr+=sizeof(unsigned int);
         q__bss_append(&tmpbss,refr,tmpsize);
+        refr+=tmpsize;
         qList_push_back(ld,tmpbss);
     }
     return ld;

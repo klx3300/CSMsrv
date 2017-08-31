@@ -238,11 +238,11 @@ int main(int argc, char** argv)
                 {
                     AppendDataReply r = qDisassembleAppendDataReply(msg->payload);
                     if(!(r.errNo)){
-                        if(currl2e != NULL){
+                        if(CHKSTAT(uistat_l3append)){
                             CLRSTAT(uistat_l3append);
                             setpe(l3buffer.pe,uid,gid,r.entryId,umask);
                             qList_push_back(currl2e->ld,l3buffer);
-                        }else if(currl1e!=NULL){
+                        }else if(CHKSTAT(uistat_l2append)){
                             CLRSTAT(uistat_l2append);
                             setpe(l2buffer.pe,uid,gid,r.entryId,umask);
                             qList_initdesc(l2buffer.ld);
@@ -254,9 +254,9 @@ int main(int argc, char** argv)
                             qList_push_back(*data,l1buffer);
                         }
                     }else{
-                        if(currl2e != NULL){
+                        if(CHKSTAT(uistat_l3append)){
                             CLRSTAT(uistat_l3append);
-                        }else if(currl1e!=NULL){
+                        }else if(CHKSTAT(uistat_l2append)){
                             CLRSTAT(uistat_l2append);
                         }else{
                             CLRSTAT(uistat_l1append);
@@ -269,7 +269,7 @@ int main(int argc, char** argv)
                 {
                     RemoveDataReply r = qDisassembleRemoveDataReply(msg->payload);
                     if(!(r.errNo)){
-                        if(currl3e != NULL){
+                        if(CHKSTAT(uistat_level3)){
                             CLRSTAT(uistat_level3);
                             qList_foreach(currl2e->ld,iter){
                                 Level3Entry *ref = (Level3Entry*)iter->data;
@@ -279,7 +279,7 @@ int main(int argc, char** argv)
                                 }
                             }
                             currl3e = NULL;
-                        }else if(currl2e!=NULL){
+                        }else if(CHKSTAT(uistat_level2)){
                             CLRSTAT(uistat_level2);
                             qList_foreach(currl1e->ld,iter){
                                 Level2Entry *ref = (Level2Entry *)iter->data;
@@ -290,7 +290,7 @@ int main(int argc, char** argv)
                                 }
                             }
                             currl2e = NULL;
-                        }else if(currl1e!=NULL){
+                        }else if(CHKSTAT(uistat_level1)){
                             CLRSTAT(uistat_level1);
                             qList_foreach(*data,iter){
                                 Level1Entry *ref = (Level1Entry*) iter->data;
@@ -315,11 +315,11 @@ int main(int argc, char** argv)
                 {
                     AlterDataReply r = qDisassembleAlterDataReply(msg->payload);
                     if(!(r.errNo)){
-                        if(currl3e != NULL){
+                        if(CHKSTAT(uistat_level3)){
                             memcpy(&(currl3e->data),&(l3buffer.data),sizeof(Level3));
-                        }else if(currl2e!=NULL){
+                        }else if(CHKSTAT(uistat_level2)){
                             memcpy(&(currl2e->data),&(l2buffer.data),sizeof(Level2));
-                        }else if(currl1e != NULL){
+                        }else if(CHKSTAT(uistat_level1)){
                             memcpy(&(currl1e->data),&(l1buffer.data),sizeof(Level1));
                         }
                     }else{
@@ -332,11 +332,11 @@ int main(int argc, char** argv)
                     AlterEntryOwnerReply r = qDisassembleAlterEntryOwnerReply(msg->payload);
                     CLRSTAT(uistat_alterowner);
                     if(!(r.errNo)){
-                        if(currl3e != NULL){
+                        if(CHKSTAT(uistat_level3)){
                             currl3e->pe.ownerid = destuid;
-                        }else if(currl2e!=NULL){
+                        }else if(CHKSTAT(uistat_level2)){
                             currl2e->pe.ownerid = destuid;
-                        }else if(currl1e != NULL){
+                        }else if(CHKSTAT(uistat_level1)){
                             currl1e->pe.ownerid = destuid;
                         }
                     }else{
@@ -349,11 +349,11 @@ int main(int argc, char** argv)
                     AlterEntryGroupReply r = qDisassembleAlterEntryGroupReply(msg->payload);
                     CLRSTAT(uistat_altergroup);
                     if(!(r.errNo)){
-                        if(currl3e != NULL){
+                        if(CHKSTAT(uistat_level3)){
                             currl3e->pe.groupid = destgid;
-                        }else if(currl2e!=NULL){
+                        }else if(CHKSTAT(uistat_level2)){
                             currl2e->pe.groupid = destgid;
-                        }else if(currl1e != NULL){
+                        }else if(CHKSTAT(uistat_level1)){
                             currl1e->pe.groupid = destgid;
                         }
                     }else{
@@ -366,11 +366,11 @@ int main(int argc, char** argv)
                     AlterEntryPermissionReply r = qDisassembleAlterEntryPermissionReply(msg->payload);
                     CLRSTAT(uistat_alterowner);
                     if(!(r.errNo)){
-                        if(currl3e != NULL){
+                        if(CHKSTAT(uistat_level3)){
                             memcpy(currl3e->pe.permission,destperm,3*sizeof(unsigned char));
-                        }else if(currl2e!=NULL){
+                        }else if(CHKSTAT(uistat_level2)){
                             memcpy(currl2e->pe.permission,destperm,3*sizeof(unsigned char));
-                        }else if(currl1e != NULL){
+                        }else if(CHKSTAT(uistat_level1)){
                             memcpy(currl1e->pe.permission,destperm,3*sizeof(unsigned char));
                         }
                     }else{
@@ -520,8 +520,9 @@ int main(int argc, char** argv)
                     dispstr = ("Selected entry is invalid.");
                 }
             }
-            ImGui::Columns(7,"CarTypes");
+            ImGui::Columns(8,"CarTypes");
             ImGui::Separator();
+            GUICOLUMNNEXT("UUID");
             GUICOLUMNNEXT("CarId");
             GUICOLUMNNEXT("CarName");
             GUICOLUMNNEXT("Weight");
@@ -532,14 +533,18 @@ int main(int argc, char** argv)
             ImGui::Separator();
             qList_foreach(*data,iter){
                 Level1Entry *le = (Level1Entry*)iter->data;
-                if(ImGui::Selectable(le->data.carId,currl1e == le, ImGuiSelectableFlags_SpanAllColumns)){
-                    if(currl2e != NULL){
+                char tmpaddr[16];
+                memset(tmpaddr,0,16);
+                sprintf(tmpaddr,"%p",le);
+                if(ImGui::Selectable(tmpaddr,currl1e == le, ImGuiSelectableFlags_SpanAllColumns)){
+                    if(CHKSTAT(uistat_level1)){
                         dispstr = ("You cannot select another while editing one.");
                     }else{
                         currl1e = le;
                     }
                 }
                 ImGui::NextColumn();
+                GUICOLUMNNEXT("%s",le->data.carId);
                 GUICOLUMNNEXT("%s",le->data.carName);
                 GUICOLUMNNEXT("%d",le->data.weight);
                 GUICOLUMNNEXT("%d",le->data.seatNum);
@@ -626,7 +631,7 @@ int main(int argc, char** argv)
                 m.qid = 1;
                 ui tmpids[3];
                 tmpids[0]=currl1e->pe.entryid;
-                m.payload = qAssembleRemoveDataQuery(uid,gid,1,tmpids);
+                m.payload = qAssembleRemoveDataQuery(uid,gid,0,tmpids);
                 LOCKNET;
                 qList_push_back(network_notifier,m);
                 UNLOCKNET;
@@ -636,14 +641,14 @@ int main(int argc, char** argv)
                 if(CHKSTAT(uistat_level2)){
                     dispstr = ("This window is required by another.");
                 }else{
-                    currl1e = NULL;
                     currl2e = NULL;
                     CLRSTAT(uistat_level1);
                 }
             }
             ImGui::Separator();
-            ImGui::Columns(8,"SellInfos");
+            ImGui::Columns(9,"SellInfos");
             ImGui::Separator();
+            GUICOLUMNNEXT("UUID");
             GUICOLUMNNEXT("CarId");
             GUICOLUMNNEXT("CarName");
             GUICOLUMNNEXT("Color");
@@ -655,17 +660,27 @@ int main(int argc, char** argv)
             ImGui::Separator();
             qList_foreach(currl1e->ld,iter){
                 Level2Entry *le = (Level2Entry*)iter->data;
-                if(ImGui::Selectable(le->data.carId,currl2e == le,ImGuiSelectableFlags_SpanAllColumns)){
-                    if(currl3e != NULL){
+                char tmpaddr[16];
+                sprintf(tmpaddr,"%p",le);
+                if(ImGui::Selectable(tmpaddr,currl2e == le,ImGuiSelectableFlags_SpanAllColumns)){
+                    fprintf(stderr,"detected selection try on %p current %p\n",le,currl2e);
+                    if(CHKSTAT(uistat_level2)){
                         dispstr = ("You cannot select another while editing one.");
                     }else{
                         currl2e = le;
                     }
                 }
                 ImGui::NextColumn();
+                GUICOLUMNNEXT("%s",le->data.carId);
                 GUICOLUMNNEXT("%s",le->data.carName);
-                GUICOLUMNNEXT("%u-%u-%u",(unsigned int)(*(((unsigned char*)&(le->data.color))+1)),
-                (unsigned int)(*(((unsigned char*)&(le->data.color))+2)),(unsigned int)(*(((unsigned char*)&(le->data.color))+3)));
+                //GUICOLUMNNEXT("%u-%u-%u",(unsigned int)(*(((unsigned char*)&(le->data.color))+1)),
+                //(unsigned int)(*(((unsigned char*)&(le->data.color))+2)),(unsigned int)(*(((unsigned char*)&(le->data.color))+3)));
+                {
+                    char* tmprefr = (char*)&(le->data.color);
+                    tmprefr ++;
+                    ImGui::ColorButton("Color##l1details",ImVec4(tmprefr[0]/255.0f,tmprefr[1]/255.0f,tmprefr[2]/255.0f,0));
+                    ImGui::NextColumn();
+                }
                 GUICOLUMNNEXT("%s",le->data.selldate);
                 GUICOLUMNNEXT("%s",le->data.customerName);
                 GUICOLUMNNEXT("%s",le->data.customerId);
@@ -679,13 +694,24 @@ int main(int argc, char** argv)
             ImGui::Begin("ManagerInterface -- PaymentRecords");
             ImGui::InputText("CarId",l2buffer.data.carId,20);
             ImGui::InputText("CarName",l2buffer.data.carName,20);
-            ImGui::ColorPicker3("Color",&picker);
+            ImGui::InputInt("Color R",&tmpcolorR);
+            ImGui::InputInt("Color G",&tmpcolorG);
+            ImGui::InputInt("Color B",&tmpcolorB);
+            ImGui::ColorButton("Color",ImVec4(tmpcolorR/255.0f,tmpcolorG/255.0f,tmpcolorB/255.0f,0));
             ImGui::InputText("SellDate",l2buffer.data.selldate,12);
             ImGui::InputText("CustName",l2buffer.data.customerName,20);
             ImGui::InputText("CustId",l2buffer.data.customerId,18);
             ImGui::InputText("CustTel",l2buffer.data.customerTel,20);
             ImGui::InputFloat("Price",&(l2buffer.data.priceSum));
             if(ImGui::Button("Alter##level2_detail")){
+                // setcolor
+                {
+                    char* tmpref = (char*)&(l2buffer.data.color);
+                    tmpref++;
+                    tmpref[0]=(char)tmpcolorR;
+                    tmpref[1]=(char)tmpcolorG;
+                    tmpref[2]=(char)tmpcolorB;
+                }
                 Messeage m;
                 m.qid = 1;
                 binary_safe_string tmpbss = qbss_new();
@@ -728,7 +754,7 @@ int main(int argc, char** argv)
                 ui tmpids[3];
                 tmpids[0]=currl1e->pe.entryid;
                 tmpids[1]=currl2e->pe.entryid;
-                m.payload = qAssembleRemoveDataQuery(uid,gid,2,tmpids);
+                m.payload = qAssembleRemoveDataQuery(uid,gid,1,tmpids);
                 LOCKNET;
                 qList_push_back(network_notifier,m);
                 UNLOCKNET;
@@ -738,14 +764,14 @@ int main(int argc, char** argv)
                 if(CHKSTAT(uistat_level3)){
                     dispstr = ("This window is required by another.");
                 }else{
-                    currl2e = NULL;
                     currl3e = NULL;
                     CLRSTAT(uistat_level2);
                 }
             }
             ImGui::Separator();
-            ImGui::Columns(5,"PayRecords");
+            ImGui::Columns(6,"PayRecords");
             ImGui::Separator();
+            GUICOLUMNNEXT("UUID");
             GUICOLUMNNEXT("CarId");
             GUICOLUMNNEXT("Paydate");
             GUICOLUMNNEXT("Amount");
@@ -754,14 +780,17 @@ int main(int argc, char** argv)
             ImGui::Separator();
             qList_foreach(currl2e->ld,iter){
                 Level3Entry *le = (Level3Entry*)iter->data;
-                if(ImGui::Selectable(le->data.carId,currl3e==le,ImGuiSelectableFlags_SpanAllColumns)){
-                    if(currl3e!=NULL){
+                char tmpaddr[16];
+                sprintf(tmpaddr,"%p",le);
+                if(ImGui::Selectable(tmpaddr,currl3e==le,ImGuiSelectableFlags_SpanAllColumns)){
+                    if(CHKSTAT(uistat_level3)){
                         dispstr = ("You cannot select another entry while editing one.");
                     }else{
                         currl3e=le;
                     }
                 }
                 ImGui::NextColumn();
+                GUICOLUMNNEXT("%s",le->data.carId);
                 GUICOLUMNNEXT("%s",le->data.paydate);
                 GUICOLUMNNEXT("%.2f",le->data.amount);
                 GUICOLUMNNEXT("%.2f",le->data.remain);
@@ -809,7 +838,7 @@ int main(int argc, char** argv)
                 tmpids[0] = currl1e->pe.entryid;
                 tmpids[1] = currl2e->pe.entryid;
                 tmpids[2] = currl3e->pe.entryid;
-                m.payload = qAssembleRemoveDataQuery(uid,gid,3,tmpids);
+                m.payload = qAssembleRemoveDataQuery(uid,gid,2,tmpids);
                 LOCKNET;
                 qList_push_back(network_notifier,m);
                 UNLOCKNET;
@@ -819,6 +848,7 @@ int main(int argc, char** argv)
                 currl3e = NULL;
                 CLRSTAT(uistat_level3);
             }
+            ImGui::End();
         }
         if(CHKSTAT(uistat_admin)){
             if(ImGui::Button("List Users##admin_panel")){
@@ -966,13 +996,24 @@ int main(int argc, char** argv)
             ImGui::Begin("Append Data##l2append");
             ImGui::InputText("CarId",l2buffer.data.carId,20);
             ImGui::InputText("CarName",l2buffer.data.carName,20);
-            ImGui::ColorPicker3("Color",&picker);
+            ImGui::InputInt("Color R",&tmpcolorR);
+            ImGui::InputInt("Color G",&tmpcolorG);
+            ImGui::InputInt("Color B",&tmpcolorB);
+            ImGui::ColorButton("Color",ImVec4(tmpcolorR/255.0f,tmpcolorG/255.0f,tmpcolorB/255.0f,0));
             ImGui::InputText("SellDate",l2buffer.data.selldate,12);
             ImGui::InputText("CustName",l2buffer.data.customerName,20);
             ImGui::InputText("CustId",l2buffer.data.customerId,18);
             ImGui::InputText("CustTel",l2buffer.data.customerTel,20);
             ImGui::InputFloat("Price",&(l2buffer.data.priceSum));
             if(ImGui::Button("Append##level2_append")){
+                fprintf(stderr,"Append to %u --\n",currl1e->pe.entryid);
+                {
+                    char* tmpref = (char*)&(l2buffer.data.color);
+                    tmpref++;
+                    tmpref[0]=(char)tmpcolorR;
+                    tmpref[1]=(char)tmpcolorG;
+                    tmpref[2]=(char)tmpcolorB;
+                }
                 Messeage m;
                 m.qid = 1;
                 binary_safe_string tmpbss = qbss_new();
