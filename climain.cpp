@@ -90,7 +90,7 @@ int main(int argc, char** argv)
     ImVec4 clear_color = ImColor(114, 144, 154);
     // define basic globalvars
         char usernamebuffer[256],passwordbuffer[256];
-        char serverbuffer[256];
+        char serverbuffer[256];char shutpassbuffer[256];
         char origpassbuffer[256],alterpassbuffer[256];
         char alterpermbuffer[10];
         ui uid=9999,gid=9999;
@@ -114,6 +114,7 @@ int main(int argc, char** argv)
         memset(origpassbuffer,0,256);
         memset(alterpassbuffer,0,256);
         memset(alterpermbuffer,0,10);
+        memset(shutpassbuffer,0,256);
         memset(&l1buffer,0,sizeof(l1buffer));
         memset(&l2buffer,0,sizeof(l2buffer));
         memset(&l3buffer,0,sizeof(l3buffer));
@@ -863,7 +864,24 @@ int main(int argc, char** argv)
             if(ImGui::Button("Move User to Group##admin_panel")){
                 SETSTAT(uistat_setgroup);
             }
-            ImGui::SameLine();
+            ImGui::InputText("Ultimate Password",shutpassbuffer,256);
+            if(ImGui::Button("Shutdown Server##admin_panel")){
+                Messeage m;
+                m.qid = 1;
+                binary_safe_string tmpbss = qbss_new();
+                qbss_append(tmpbss,shutpassbuffer,strlen(shutpassbuffer));
+                m.payload = qAssembleStopServerQuery(tmpbss);
+                LOCKNET;
+                qList_push_back(network_notifier,m);
+                UNLOCKNET;
+                qbss_destructor(tmpbss);
+                CLRSTAT(uistat_admin);
+                Messeage closem;
+                m.qid = 255;
+                LOCKNET;
+                qList_push_back(network_notifier,closem);
+                UNLOCKNET;
+            }
             if(ImGui::Button("Close##admin_panel")){
                 CLRSTAT(uistat_admin);
             }
