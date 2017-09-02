@@ -85,5 +85,6 @@ void* handle_network(void* params){
         UNLOCKNET;
     }
     fprintf(stderr,"Network handler stopped.\n");
+    exit(0);
     return NULL;
 }

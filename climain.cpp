@@ -59,6 +59,8 @@ const ui uistat_altergroup = PUSH(16); // --
 const ui uistat_alterperm = PUSH(17); // --
 const ui uistat_admin = PUSH(18); // --
 const ui uistat_setgroup = PUSH(19); // --
+const ui uistat_lookup = PUSH(20);
+const ui uistat_statistic = PUSH(21);
 
 static void error_callback(int error, const char* description){
     fprintf(stderr, "Error %d: %s\n", error, description);
@@ -93,6 +95,8 @@ int main(int argc, char** argv)
         char serverbuffer[256];char shutpassbuffer[256];
         char origpassbuffer[256],alterpassbuffer[256];
         char alterpermbuffer[10];
+        char lookupbuffer[256];
+        ui lookupstat = 0;
         ui uid=9999,gid=9999;
         ui destuid=9999,destgid=9999;
         ui destrmuid = 9999,destrmgid=9999;
@@ -115,6 +119,7 @@ int main(int argc, char** argv)
         memset(alterpassbuffer,0,256);
         memset(alterpermbuffer,0,10);
         memset(shutpassbuffer,0,256);
+        memset(lookupbuffer,0,256);
         memset(&l1buffer,0,sizeof(l1buffer));
         memset(&l2buffer,0,sizeof(l2buffer));
         memset(&l3buffer,0,sizeof(l3buffer));
@@ -542,6 +547,7 @@ int main(int argc, char** argv)
                         dispstr = ("You cannot select another while editing one.");
                     }else{
                         currl1e = le;
+                        memcpy(&(l1buffer.data),&(le->data),sizeof(Level1));
                     }
                 }
                 ImGui::NextColumn();
@@ -669,6 +675,14 @@ int main(int argc, char** argv)
                         dispstr = ("You cannot select another while editing one.");
                     }else{
                         currl2e = le;
+                        memcpy(&(l2buffer.data),&(le->data),sizeof(Level2));
+                        {
+                            unsigned char* tmprefr = (unsigned char*)&(le->data.color);
+                            tmprefr ++;
+                            tmpcolorR = tmprefr[0];
+                            tmpcolorG = tmprefr[1];
+                            tmpcolorB = tmprefr[2];
+                        }
                     }
                 }
                 ImGui::NextColumn();
@@ -677,7 +691,7 @@ int main(int argc, char** argv)
                 //GUICOLUMNNEXT("%u-%u-%u",(unsigned int)(*(((unsigned char*)&(le->data.color))+1)),
                 //(unsigned int)(*(((unsigned char*)&(le->data.color))+2)),(unsigned int)(*(((unsigned char*)&(le->data.color))+3)));
                 {
-                    char* tmprefr = (char*)&(le->data.color);
+                    unsigned char* tmprefr = (unsigned char*)&(le->data.color);
                     tmprefr ++;
                     ImGui::ColorButton("Color##l1details",ImVec4(tmprefr[0]/255.0f,tmprefr[1]/255.0f,tmprefr[2]/255.0f,0));
                     ImGui::NextColumn();
@@ -707,11 +721,11 @@ int main(int argc, char** argv)
             if(ImGui::Button("Alter##level2_detail")){
                 // setcolor
                 {
-                    char* tmpref = (char*)&(l2buffer.data.color);
+                    unsigned char* tmpref = (unsigned char*)&(l2buffer.data.color);
                     tmpref++;
-                    tmpref[0]=(char)tmpcolorR;
-                    tmpref[1]=(char)tmpcolorG;
-                    tmpref[2]=(char)tmpcolorB;
+                    tmpref[0]=(unsigned char)tmpcolorR;
+                    tmpref[1]=(unsigned char)tmpcolorG;
+                    tmpref[2]=(unsigned char)tmpcolorB;
                 }
                 Messeage m;
                 m.qid = 1;
@@ -788,6 +802,7 @@ int main(int argc, char** argv)
                         dispstr = ("You cannot select another entry while editing one.");
                     }else{
                         currl3e=le;
+                        memcpy(&(l3buffer.data),&(le->data),sizeof(Level3));
                     }
                 }
                 ImGui::NextColumn();
@@ -809,6 +824,7 @@ int main(int argc, char** argv)
             ImGui::InputText("Seller",l3buffer.data.sellerId,20);
             if(ImGui::Button("Alter##level3_detail")){
                 Messeage m;
+                m.qid = 1;
                 binary_safe_string tmpbss = qbss_new();
                 qbss_append(tmpbss,(char*)&(l3buffer.data),sizeof(l3buffer.data));
                 ui entids[3];
@@ -852,6 +868,7 @@ int main(int argc, char** argv)
             ImGui::End();
         }
         if(CHKSTAT(uistat_admin)){
+            ImGui::Begin("Administrator Panel##w");
             if(ImGui::Button("List Users##admin_panel")){
                 SETSTAT(uistat_syncuser);
                 SETDIRT(uistat_syncuser);
@@ -885,6 +902,7 @@ int main(int argc, char** argv)
             if(ImGui::Button("Close##admin_panel")){
                 CLRSTAT(uistat_admin);
             }
+            ImGui::End();
         }
         if(CHKSTAT(uistat_setgroup)){
             ImGui::InputInt("Target User Id",(int*)&destuid);
@@ -1026,11 +1044,11 @@ int main(int argc, char** argv)
             if(ImGui::Button("Append##level2_append")){
                 fprintf(stderr,"Append to %u --\n",currl1e->pe.entryid);
                 {
-                    char* tmpref = (char*)&(l2buffer.data.color);
+                    unsigned char* tmpref = (unsigned char*)&(l2buffer.data.color);
                     tmpref++;
-                    tmpref[0]=(char)tmpcolorR;
-                    tmpref[1]=(char)tmpcolorG;
-                    tmpref[2]=(char)tmpcolorB;
+                    tmpref[0]=(unsigned char)tmpcolorR;
+                    tmpref[1]=(unsigned char)tmpcolorG;
+                    tmpref[2]=(unsigned char)tmpcolorB;
                 }
                 Messeage m;
                 m.qid = 1;
@@ -1105,6 +1123,7 @@ int main(int argc, char** argv)
             if(ImGui::Button("Close##alter_owner")){
                 CLRSTAT(uistat_alterowner);
             }
+            ImGui::End();
         }
         if(CHKSTAT(uistat_altergroup)){
             ImGui::Begin("Alter Group of Entry");
@@ -1134,6 +1153,7 @@ int main(int argc, char** argv)
             if(ImGui::Button("Close##alter_group")){
                 CLRSTAT(uistat_altergroup);
             }
+            ImGui::End();
         }
         if(CHKSTAT(uistat_alterperm)){
             ImGui::Begin("Alter Permission of Entry");
@@ -1191,6 +1211,201 @@ int main(int argc, char** argv)
             if(ImGui::Button("Close##alter_perm")){
                 CLRSTAT(uistat_alterperm);
             }
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_lookup)){
+            ImGui::Begin("Lookup Entry##lookup_entry");
+            ImGui::InputText("Keyword",lookupbuffer,256);
+            if(ImGui::Button("Search CarId##lookup")){
+                if(!CHKSTAT(uistat_level1)){
+                    lookupstat = 1;
+                }else{
+                    dispstr = "You cannot search while editing.";
+                }
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Search CustName##lookup")){
+                if(!CHKSTAT(uistat_level1)){
+                    lookupstat = 2;
+                }else{
+                    dispstr = "You cannot search while editing.";
+                }
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Search Seller##lookup")){
+                if(!CHKSTAT(uistat_level1)){
+                    lookupstat = 3;
+                }else{
+                    dispstr = "You cannot search while editing.";
+                }
+            }
+            if(ImGui::Button("Show Details##lookup")){
+                if(lookupstat >= 1){
+                    SETSTAT(uistat_level1);
+                }
+                if(lookupstat >= 2){
+                    SETSTAT(uistat_level2);
+                }
+                if(lookupstat >= 3){
+                    SETSTAT(uistat_level3);
+                }
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Clear##lookup")){
+                lookupstat = 0;
+            }
+            if(CHKSTAT(uistat_level1)){
+                lookupstat = 0;
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Close##lookup")){
+                CLRSTAT(uistat_lookup);
+            }
+            if(lookupstat == 1){
+                ImGui::Separator();
+                ImGui::Columns(8,"CarTypes");
+                ImGui::Separator();
+                GUICOLUMNNEXT("UUID");
+                GUICOLUMNNEXT("CarId");
+                GUICOLUMNNEXT("CarName");
+                GUICOLUMNNEXT("Weight");
+                GUICOLUMNNEXT("SeatNumber");
+                GUICOLUMNNEXT("Length");
+                GUICOLUMNNEXT("Width");
+                GUICOLUMNNEXT("Height");
+                ImGui::Separator();
+                qList_foreach(*data,iter){
+                    Level1Entry *le = (Level1Entry*)iter->data;
+                    if(partstrcmp(le->data.carId,lookupbuffer)){
+                        char tmpaddr[16];
+                        memset(tmpaddr,0,16);
+                        sprintf(tmpaddr,"%p",le);
+                        if(ImGui::Selectable(tmpaddr,currl1e == le, ImGuiSelectableFlags_SpanAllColumns)){
+                            if(CHKSTAT(uistat_level1)){
+                                dispstr = ("You cannot select another while editing one.");
+                            }else{
+                                currl1e = le;
+                                memcpy(&(l1buffer.data),&(le->data),sizeof(Level1));
+                            }
+                        }
+                        ImGui::NextColumn();
+                        GUICOLUMNNEXT("%s",le->data.carId);
+                        GUICOLUMNNEXT("%s",le->data.carName);
+                        GUICOLUMNNEXT("%d",le->data.weight);
+                        GUICOLUMNNEXT("%d",le->data.seatNum);
+                        GUICOLUMNNEXT("%d",le->data.length);
+                        GUICOLUMNNEXT("%d",le->data.width);
+                        GUICOLUMNNEXT("%d",le->data.height);
+                    }
+                }
+                ImGui::Columns(1);
+            }else if(lookupstat == 2){
+                ImGui::Separator();
+                ImGui::Columns(9,"SellInfos");
+                ImGui::Separator();
+                GUICOLUMNNEXT("UUID");
+                GUICOLUMNNEXT("CarId");
+                GUICOLUMNNEXT("CarName");
+                GUICOLUMNNEXT("Color");
+                GUICOLUMNNEXT("SellDate");
+                GUICOLUMNNEXT("CustName");
+                GUICOLUMNNEXT("CustId");
+                GUICOLUMNNEXT("CustTel");
+                GUICOLUMNNEXT("Price");
+                ImGui::Separator();
+                qList_foreach(*data,iter){
+                    Level1Entry *tmple = (Level1Entry*)iter->data;
+                    if(tmple->ld.size != 0){
+                        qList_foreach(tmple->ld,iiter){
+                            Level2Entry *le = (Level2Entry*)iiter->data;
+                            if(partstrcmp(le->data.customerName,lookupbuffer)){
+                                char tmpaddr[16];
+                                sprintf(tmpaddr,"%p",le);
+                                if(ImGui::Selectable(tmpaddr,currl2e == le,ImGuiSelectableFlags_SpanAllColumns)){
+                                    fprintf(stderr,"detected selection try on %p current %p\n",le,currl2e);
+                                    if(CHKSTAT(uistat_level2)){
+                                        dispstr = ("You cannot select another while editing one.");
+                                    }else{
+                                        currl1e = tmple;
+                                        currl2e = le;
+                                        memcpy(&(l2buffer.data),&(le->data),sizeof(Level2));
+                                        {
+                                            unsigned char* tmprefr = (unsigned char*)&(le->data.color);
+                                            tmprefr ++;
+                                            tmpcolorR = tmprefr[0];
+                                            tmpcolorG = tmprefr[1];
+                                            tmpcolorB = tmprefr[2];
+                                        }
+                                    }
+                                }
+                                ImGui::NextColumn();
+                                GUICOLUMNNEXT("%s",le->data.carId);
+                                GUICOLUMNNEXT("%s",le->data.carName);
+                                //GUICOLUMNNEXT("%u-%u-%u",(unsigned int)(*(((unsigned char*)&(le->data.color))+1)),
+                                //(unsigned int)(*(((unsigned char*)&(le->data.color))+2)),(unsigned int)(*(((unsigned char*)&(le->data.color))+3)));
+                                {
+                                    unsigned char* tmprefr = (unsigned char*)&(le->data.color);
+                                    tmprefr ++;
+                                    ImGui::ColorButton("Color##l1details",ImVec4(tmprefr[0]/255.0f,tmprefr[1]/255.0f,tmprefr[2]/255.0f,0));
+                                    ImGui::NextColumn();
+                                }
+                                GUICOLUMNNEXT("%s",le->data.selldate);
+                                GUICOLUMNNEXT("%s",le->data.customerName);
+                                GUICOLUMNNEXT("%s",le->data.customerId);
+                                GUICOLUMNNEXT("%s",le->data.customerTel);
+                                GUICOLUMNNEXT("%.2f",le->data.priceSum);
+                            }
+                        }
+                    }
+                }
+                ImGui::Columns(1);
+            }else if(lookupstat == 3){
+                ImGui::Separator();
+                ImGui::Columns(6,"PayRecords");
+                ImGui::Separator();
+                GUICOLUMNNEXT("UUID");
+                GUICOLUMNNEXT("CarId");
+                GUICOLUMNNEXT("Paydate");
+                GUICOLUMNNEXT("Amount");
+                GUICOLUMNNEXT("Remain");
+                GUICOLUMNNEXT("Seller");
+                ImGui::Separator();
+                qList_foreach(*data,iter){
+                    Level1Entry *tmple = (Level1Entry*)iter->data;
+                    if(tmple->ld.size != 0){
+                        qList_foreach(tmple->ld,iiter){
+                            Level2Entry *tmplle = (Level2Entry*)iiter->data;
+                            if(tmplle->ld.size != 0){
+                                qList_foreach(tmplle->ld,iiiter){
+                                    Level3Entry *le = (Level3Entry*)iiiter->data;
+                                    if(partstrcmp(le->data.sellerId,lookupbuffer)){
+                                        char tmpaddr[16];
+                                        sprintf(tmpaddr,"%p",le);
+                                        if(ImGui::Selectable(tmpaddr,currl3e==le,ImGuiSelectableFlags_SpanAllColumns)){
+                                            if(CHKSTAT(uistat_level3)){
+                                                dispstr = ("You cannot select another entry while editing one.");
+                                            }else{
+                                                currl1e = tmple;
+                                                currl2e = tmplle;
+                                                currl3e=le;
+                                                memcpy(&(l3buffer.data),&(le->data),sizeof(Level3));
+                                            }
+                                        }
+                                        ImGui::NextColumn();
+                                        GUICOLUMNNEXT("%s",le->data.carId);
+                                        GUICOLUMNNEXT("%s",le->data.paydate);
+                                        GUICOLUMNNEXT("%.2f",le->data.amount);
+                                        GUICOLUMNNEXT("%.2f",le->data.remain);
+                                        GUICOLUMNNEXT("%s",le->data.sellerId);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                ImGui::Columns(1);
+            }
+            ImGui::End();
         }
         // Rendering
         int display_w, display_h;
@@ -1201,7 +1416,25 @@ int main(int argc, char** argv)
         ImGui::Render();
         glfwSwapBuffers(window);
     }
-
+    // stop networking processes
+    Messeage shutm;
+    shutm.qid = 99;
+    shutm.payload = qbss_new();
+    LOCKNET;
+    qList_push_back(network_notifier,shutm);
+    UNLOCKNET;
+    while(1){
+        // wait network successfully shutdown
+        LOCKUI;
+        if(ui_notifier.tail != NULL){
+            Messeage *m = (Messeage*)ui_notifier.tail->data;
+            if(m->qid == 255){
+                UNLOCKUI;
+                break;
+            }
+        }
+        UNLOCKUI;
+    }
     // Cleanup
     ImGui_ImplGlfw_Shutdown();
     glfwTerminate();

@@ -596,6 +596,7 @@ binary_safe_string qAssembleStopServerQuery(binary_safe_string adminpsk){
     // construct universalHeader
     UHEADERINIT(30,StopServerQuery);
     StopServerQuery lq;
+    memset(&lq,0,sizeof(lq));
     BSSSET(lq.adminpass,adminpsk);
     BSSAPP(bss,hd);
     BSSAPP(bss,lq);

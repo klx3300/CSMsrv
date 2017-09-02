@@ -7,7 +7,7 @@ int qNetwork_read(qSocket sock,char* buffer,unsigned int length){
     unsigned int have_read=0;
     while(have_read<length){
         int onetime = qStreamSocket_read(sock,buffer,length-have_read);
-        if(onetime == -1){
+        if(onetime == -1 || onetime == 0){
             return 0;
         }
         have_read += onetime;

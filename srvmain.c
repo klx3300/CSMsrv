@@ -33,6 +33,9 @@ ui uhashf(void* t,ui size){
 }
 ui RUNNING=1;
 ui cliconns = 0;
+char** globargv = NULL;
+
+qSocket listener;
 
 ui permsize = 3*sizeof(unsigned char);
 
@@ -81,7 +84,7 @@ int main(int argc,char** argv){
         printf("Usage: %s <listen_address:listen_port>\n",argv[0]);
         return 255;
     }
-
+    globargv = argv;
     // test data_storage_status
     { // keep stuff local.
         FILE* data1file,*data2file,*data3file;
@@ -233,7 +236,6 @@ int main(int argc,char** argv){
     // start-up server
     fprintf(stderr,"[INFO] Trying to open up server...\n");
     {
-        qSocket listener;
         listener.domain = qIPv4;
         listener.type = qStreamSocket;
         listener.protocol = qDefaultProto;
@@ -446,6 +448,11 @@ void* handle_client(void* clisock_x){
                     if(r->gid == apq.groupId){
                         FLAG_SUCC = 1;
                     }
+                }
+                if(!FLAG_SUCC){
+                    GroupData tmpgd;
+                    tmpgd.gid = apq.groupId;
+                    qList_push_back(*group,tmpgd);
                 }
                 UNLOCKGROUP;
                 if(FLAG_SUCC){
@@ -678,11 +685,11 @@ void* handle_client(void* clisock_x){
                 qListDescriptor *tmpurld = qUnserialize(ser_tmprld,YES_IT_IS_A_LIST);
                 qList_foreach(*data,titer){
                     Level1Entry *le = titer->data;
-                    fprintf(stderr,"%u %s %s\n",le->pe.entryid,le->data.carId,le->data.carName);
+                    fprintf(stderr,"%u %s %s %u%u%u\n",le->pe.entryid,le->data.carId,le->data.carName,(unsigned int)le->pe.permission[0],(unsigned int)le->pe.permission[1],(unsigned int)le->pe.permission[2]);
                     if(le->ld.size != 0){
                         qList_foreach(le->ld,tiiter){
                             Level2Entry *lle = tiiter->data;
-                            fprintf(stderr,"    %u %s %s\n",lle->pe.entryid,lle->data.carId,lle->data.carName);
+                            fprintf(stderr,"    %u %s %s %u%u%u\n",lle->pe.entryid,lle->data.carId,lle->data.carName,(unsigned int)lle->pe.permission[0],(unsigned int)lle->pe.permission[1],(unsigned int)lle->pe.permission[2]);
                         }
                     }
                 }
@@ -960,6 +967,7 @@ void* handle_client(void* clisock_x){
             {
                 AlterEntryPermissionQuery q = qDisassembleAlterEntryPermissionQuery(rcontent);
                 ui FLAG_PRIV = 0,FLAG_SUCC = 0,tmpid = 0;
+                fprintf(stderr,"Attempt chmod %u %u %u %u for %u%u%u\n",q.entryLvl,q.entryIds[0],q.entryIds[1],q.entryIds[2],(unsigned int)q.permission[0],(unsigned int)q.permission[1],(unsigned int)q.permission[2]);
                 LOCKUSER;
                 CHECKPRIV(q.userId,FLAG_PRIV);
                 UNLOCKUSER;
@@ -979,7 +987,7 @@ void* handle_client(void* clisock_x){
                                 if(lle->pe.entryid == q.entryIds[1]){
                                     if(q.entryLvl == 1){
                                         if((checkperm(lle->pe,q.userId,q.groupid) & Q_PERMISSION_W) || FLAG_PRIV){
-                                            memcpy(le->pe.permission,q.permission,permsize);
+                                            memcpy(lle->pe.permission,q.permission,permsize);
                                             FLAG_SUCC = 1;
                                         }
                                     }else if((checkperm(lle->pe,q.userId,q.groupid)&Q_PERMISSION_R)||FLAG_PRIV){
@@ -987,7 +995,7 @@ void* handle_client(void* clisock_x){
                                             Level3Entry *llle = iiiter->data;
                                             if(llle->pe.entryid == q.entryIds[2]){
                                                 if((checkperm(llle->pe,q.userId,q.groupid) & Q_PERMISSION_W) || FLAG_PRIV){
-                                                    memcpy(le->pe.permission,q.permission,permsize);
+                                                    memcpy(llle->pe.permission,q.permission,permsize);
                                                     FLAG_SUCC = 1;
                                                 }
                                                 break;
@@ -1008,10 +1016,19 @@ void* handle_client(void* clisock_x){
             case 30:
             {
                 StopServerQuery q = qDisassembleStopServerQuery(rcontent);
+                fprintf(stderr,"[SHUT] Connection %d sent shutdown passphrase %s\n",clisock->desc,q.adminpass);
                 if(fullstrcmp(q.adminpass,SHUTDOWN_PASSPHRASE)){
                     fprintf(stderr,"[SHUT] Connection %d successfully inited server shutting down process.\n",clisock->desc);
                     qSocket_close(*clisock);
+                    RUNNING = 0;
                     FLAG_CONT = 0;
+                    // send a fake connection
+                    qSocket fakesock = qSocket_constructor(qIPv4,qStreamSocket,qDefaultProto);
+                    qSocket_open(fakesock);
+                    qStreamSocket_connect(fakesock,globargv[1]);
+                    qStreamSocket_write(fakesock,"aaaaaaaaaaaaaaaaaaaaaaaaa",25);
+                    qSocket_close(fakesock);
+                    fprintf(stderr,"[SHUT] Successfully closed fakesock.\n");
                 }
             }
             break;

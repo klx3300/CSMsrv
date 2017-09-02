@@ -27,3 +27,14 @@ int find_byte(const char* str,const char target,int size){
     }
     return -1;
 }
+
+int partstrcmp(const char* a,const char* b){
+    int lena=strlen(a),lenb=strlen(b);
+    int rlen=(lena>lenb?lenb:lena);
+    for(int i=0;i<rlen;i++){
+        if(a[i]!=b[i]){
+            return 0;
+        }
+    }
+    return 1;
+}
