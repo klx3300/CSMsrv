@@ -19,6 +19,7 @@ extern "C"{
 #include "clinet/clinet.h"
 #include "zhwkre/serialization.h"
 #include "permissionctl/permissionctl.h"
+#include "zhwkre/alg.h"
 }
 
 #define PUSH(num) (((ui)1)<<(num))
@@ -35,6 +36,8 @@ extern "C"{
 #define GUICOLUMNNEXT(...) ImGui::Text(__VA_ARGS__);ImGui::NextColumn()
 
 typedef unsigned int ui;
+
+float fepsilon = 0.000001f;
 
 ui curr_status = 0;
 ui curr_dirty = 0;
@@ -66,6 +69,15 @@ static void error_callback(int error, const char* description){
     fprintf(stderr, "Error %d: %s\n", error, description);
 }
 
+int int_decre_sort(qListIterator a,qListIterator b){
+    SoldNumSort *ia=(SoldNumSort*)a->data,*ib=(SoldNumSort*)b->data;
+    return (ia->sorter)<(ib->sorter);
+}
+
+int float_decre_sort(qListIterator a,qListIterator b){
+    SoldMonSort *ia=(SoldMonSort*)a->data,*ib=(SoldMonSort*)b->data;
+    return (ia->sorter)<(ib->sorter);
+}
 
 int main(int argc, char** argv)
 {
@@ -96,7 +108,7 @@ int main(int argc, char** argv)
         char origpassbuffer[256],alterpassbuffer[256];
         char alterpermbuffer[10];
         char lookupbuffer[256];
-        ui lookupstat = 0;
+        ui lookupstat = 0,stistat = 0;
         ui uid=9999,gid=9999;
         ui destuid=9999,destgid=9999;
         ui destrmuid = 9999,destrmgid=9999;
@@ -518,6 +530,14 @@ int main(int argc, char** argv)
             }
             if(ImGui::Button("Append")){
                 SETSTAT(uistat_l1append);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Lookup##mainw")){
+                SETSTAT(uistat_lookup);
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Statistics##mainw")){
+                SETSTAT(uistat_statistic);
             }
             if(ImGui::Button("Show detail of current selection")){
                 if(currl1e != NULL){
@@ -1397,6 +1417,122 @@ int main(int argc, char** argv)
                                         GUICOLUMNNEXT("%.2f",le->data.amount);
                                         GUICOLUMNNEXT("%.2f",le->data.remain);
                                         GUICOLUMNNEXT("%s",le->data.sellerId);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                ImGui::Columns(1);
+            }
+            ImGui::End();
+        }
+        if(CHKSTAT(uistat_statistic)){
+            ImGui::Begin("Statistia##statistics");
+            if(ImGui::Button("Sort by SoldNum##statistics")){
+                if(!CHKSTAT(uistat_level1)){
+                    stistat = 1;
+                }else{
+                    dispstr = "You cannot search while editing.";
+                }
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Sort by Money##statistics")){
+                if(!CHKSTAT(uistat_level1)){
+                    stistat = 2;
+                }else{
+                    dispstr = "You cannot search while editing.";
+                }
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Unpaid Loan##statistics")){
+                if(!CHKSTAT(uistat_level1)){
+                    stistat = 3;
+                }else{
+                    dispstr = "You cannot search while editing.";
+                }
+            }
+            if(ImGui::Button("Clear##statistics")){
+                stistat = 0;
+            }
+            if(CHKSTAT(uistat_level1)){
+                stistat = 0;
+            }
+            ImGui::SameLine();
+            if(ImGui::Button("Close##statistics")){
+                CLRSTAT(uistat_statistic);
+            }
+            if(stistat == 1){
+                qListDescriptor srtdesc;
+                qList_initdesc(srtdesc);
+                qList_foreach(*data,iter){
+                    Level1Entry *le = (Level1Entry*)iter->data;
+                    SoldNumSort tmpsrt;
+                    memcpy(&(tmpsrt.data),&(le->data),sizeof(Level1));
+                    tmpsrt.sorter = le->ld.size;
+                    qList_push_back(srtdesc,tmpsrt);
+                }
+                bubble_sort(&srtdesc,int_decre_sort);
+                ImGui::Columns(3,"SortByNum");
+                ImGui::Separator();
+                GUICOLUMNNEXT("CarId");
+                GUICOLUMNNEXT("CarName");
+                GUICOLUMNNEXT("SoldNum");
+                ImGui::Separator();
+                qList_foreach(srtdesc,iter){
+                    SoldNumSort *sns = (SoldNumSort*)iter->data;
+                    GUICOLUMNNEXT("%s",sns->data.carId);
+                    GUICOLUMNNEXT("%s",sns->data.carName);
+                    GUICOLUMNNEXT("%d",sns->sorter);
+                }
+                ImGui::Columns(1);
+            }else if(stistat == 2){
+                qListDescriptor srtdesc;
+                qList_initdesc(srtdesc);
+                qList_foreach(*data,iter){
+                    Level1Entry *le = (Level1Entry*)iter->data;
+                    SoldMonSort tmpsrt;
+                    memcpy(&(tmpsrt.data),&(le->data),sizeof(Level1));
+                    tmpsrt.sorter = 0.0f;
+                    qList_foreach(le->ld,iiter){
+                        Level2Entry *lle = (Level2Entry*)iiter->data;
+                        tmpsrt.sorter += lle->data.priceSum;
+                    }
+                    qList_push_back(srtdesc,tmpsrt);
+                }
+                bubble_sort(&srtdesc,float_decre_sort);
+                ImGui::Columns(3,"SortByMon");
+                ImGui::Separator();
+                GUICOLUMNNEXT("CarId");
+                GUICOLUMNNEXT("CarName");
+                GUICOLUMNNEXT("SoldMon");
+                ImGui::Separator();
+                qList_foreach(srtdesc,iter){
+                    SoldMonSort *sns = (SoldMonSort*)iter->data;
+                    GUICOLUMNNEXT("%s",sns->data.carId);
+                    GUICOLUMNNEXT("%s",sns->data.carName);
+                    GUICOLUMNNEXT("%.2f",sns->sorter);
+                }
+                ImGui::Columns(1); 
+            }else if(stistat == 3){
+                ImGui::Separator();
+                ImGui::Columns(3,"LoanRemains");
+                GUICOLUMNNEXT("CarId");
+                GUICOLUMNNEXT("CustName");
+                GUICOLUMNNEXT("Remain");
+                ImGui::Separator();
+                qList_foreach(*data,iter){
+                    Level1Entry *tmple = (Level1Entry*)iter->data;
+                    if(tmple->ld.size != 0){
+                        qList_foreach(tmple->ld,iiter){
+                            Level2Entry *tmplle = (Level2Entry*)iiter->data;
+                            if(tmplle->ld.size != 0){
+                                qList_foreach(tmplle->ld,iiiter){
+                                    Level3Entry *le = (Level3Entry*)iiiter->data;
+                                    if(le->data.remain > fepsilon){
+                                        GUICOLUMNNEXT("%s",le->data.carId);
+                                        GUICOLUMNNEXT("%s",tmplle->data.customerName);
+                                        GUICOLUMNNEXT("%.2f",le->data.remain);
                                     }
                                 }
                             }

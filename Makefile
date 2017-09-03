@@ -29,9 +29,9 @@ include config.mk
 main : cli srv
 	$(TERM_ECHO)$(ECHO_PROG) "     --   destination main built."
 
-cli : advanced_network.o bss.o mutex.o threading.o list.o unordered_map.o socket.o tcp.o serialization.o utils.o imgui_impl_glfw.o imgui.o imgui_demo.o imgui_draw.o protocol.o clinet.o climain.o permissionctl.o
+cli : advanced_network.o bss.o mutex.o threading.o list.o unordered_map.o socket.o tcp.o serialization.o utils.o imgui_impl_glfw.o imgui.o imgui_demo.o imgui_draw.o protocol.o clinet.o climain.o permissionctl.o bubble_sort.o
 	$(TERM_ECHO)$(ECHO_PROG) "     LD   cli"
-	$(TERM_ECHO)$(CXX) -o cli permissionctl.o advanced_network.o bss.o mutex.o threading.o list.o unordered_map.o socket.o tcp.o serialization.o utils.o imgui_impl_glfw.o imgui.o imgui_demo.o imgui_draw.o protocol.o clinet.o climain.o $(CXXFLAGS) $(CLILIBS)
+	$(TERM_ECHO)$(CXX) -o cli permissionctl.o advanced_network.o bss.o mutex.o threading.o list.o unordered_map.o socket.o tcp.o serialization.o utils.o imgui_impl_glfw.o imgui.o imgui_demo.o imgui_draw.o protocol.o bubble_sort.o clinet.o climain.o $(CXXFLAGS) $(CLILIBS)
 	$(TERM_ECHO)$(ECHO_PROG) "     --   destination cli built."
 
 srv : advanced_network.o bss.o mutex.o threading.o list.o unordered_map.o socket.o tcp.o serialization.o utils.o protocol.o permissionctl.o srvmain.o
@@ -117,6 +117,10 @@ serialization.o: zhwkre/serialization/serialization.c
 utils.o: zhwkre/utils/utils.c
 	$(TERM_ECHO)$(ECHO_PROG) "     CC   utils.o"
 	$(TERM_ECHO)$(CC) $(CFLAGS) -c -o utils.o zhwkre/utils/utils.c
+
+bubble_sort.o : zhwkre/algorithm/bubble_sort.c
+	$(TERM_ECHO)$(ECHO_PROG) "     CC   bubble_sort.o"
+	$(TERM_ECHO)$(CC) $(CFLAGS) -c -o bubble_sort.o zhwkre/algorithm/bubble_sort.c
 
 climain.o: climain.cpp
 	$(TERM_ECHO)$(ECHO_PROG) "    CXX   climain.o"

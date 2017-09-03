@@ -38,4 +38,13 @@ typedef struct q_CarType_st Level1;
 #define DEFAULT_ADMIN_PASSWORD "p@ssw0rd"
 #define DEFAULT_ADMIN_GROUPNAME "administrators"
 
+typedef struct q_SoldNumSort_st{
+    int sorter;
+    Level1 data;
+}SoldNumSort;
+typedef struct q_SoldMonSort_st{
+    float sorter;
+    Level1 data;
+}SoldMonSort;
+
 #endif
