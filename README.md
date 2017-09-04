@@ -1,41 +1,46 @@
 # CSMsrv
 
+> The important part is not how you use it, but how it implements the stuff you are using.
+
 ## What's this
 
 A car selling manager. hust 2016 C programming course assignment project.
 
-notice: due to course timetable changes in the next year,
-
-I hereby claim that this project is assigned at 2017 summer holiday.
-
-the zhwkre included here is a modified version of my zhwkre repo.
-
-removed some functions and added some functions to fully satisfy the
-
-criteria specified in instruction book.
+Notice: this project is assigned for 2017 summer holiday.
 
 ## Makedepend
 
-- imgui -- for client GUI. git clone --recursive should work.
-- glfw version 3 -- for the imgui backend.
-- Linux/Unix environment -- for networking and concurrent.
-- gcc 7.1.1(20170528) or 7.1.1-3
-- g++ the same version with gcc. for compiling imgui and cimgui.
-
-- Notice: do not guarantee it works on the newest GCC(7.1.1-4,20170630?)
+- `zhwkre` -- a simple c based library written by myself. `git clone --recursive` should work.
+- `dear imgui` -- for client GUI. `git clone --recursive` should work.
+- `glfw version 3` -- for the `dear imgui` backend.
+- `Linux/Unix environment` -- for networking and concurrent of `zhwkre`.
+- `gcc 7.1.1(20170528) or 7.1.1-3` -- for compiling zhwkre and base structrue of project.
+- `g++ the same version with gcc`. -- for compiling imgui and cimgui.
+- Notice: *DO NOT* guarantee it works on the newest `GCC(7.1.1-4,20170630?)`
 
 ## Building
 
+``` shell
 1. $ git clone --recursive <this_repo>
-1. $ cd CSMsrv
-1. $ make server # for server side
-1. $ make client # for client side
-1. $ make # automake the two
-1. $ make clean # clean up(include the executables)
+2. $ cd CSMsrv # enter the build directory
+3. $ make server # for server side
+4. $ make client # for client side
+5. $ make # automake the two
+6. $ make clean # clean up(include the executables)
+```
+
+## Running
+
+``` shell
+1. $ ./srv 127.0.0.1:1992 # start up server, listen at localhost,port 1992
+2. $ ./cli
+3. $ # then enter 127.0.0.1:1992 at serveraddr, username and password.
+```
 
 ## Current Status
 
-- Important: not fully written yet.
+- *BUILD PASSING*
+- *TEST PASSING*
 
 ## Using for Future Projects
 
@@ -68,3 +73,7 @@ But due to the unusual structure this implementation used,
 directly copy this project can easily be discovered.
 
 Use at your *OWN RISK*.
+
+## LICENSE
+
+Licensed under MIT.
