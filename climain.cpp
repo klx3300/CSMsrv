@@ -925,6 +925,7 @@ int main(int argc, char** argv)
             ImGui::End();
         }
         if(CHKSTAT(uistat_setgroup)){
+            ImGui::Begin("Group Alternation##setgrp");
             ImGui::InputInt("Target User Id",(int*)&destuid);
             ImGui::InputInt("Target Group Id",(int*)&destgid);
             if(ImGui::Button("Confirm Alternation##setgrp")){
@@ -936,9 +937,10 @@ int main(int argc, char** argv)
                 UNLOCKNET;
             }
             ImGui::SameLine();
-            if(ImGui::Button("Cancel")){
+            if(ImGui::Button("Cancel##setgrp")){
                 CLRSTAT(uistat_setgroup);
             }
+            ImGui::End();
         }
         if(CHKSTAT(uistat_syncgroup)){
             if(CHKDIRT(uistat_syncgroup)){
@@ -1111,7 +1113,7 @@ int main(int argc, char** argv)
             }
             ImGui::SameLine();
             if(ImGui::Button("Close##level3_append")){
-                CLRSTAT(uistat_l1append);
+                CLRSTAT(uistat_l3append);
             }
             ImGui::End();
         }
@@ -1527,13 +1529,17 @@ int main(int argc, char** argv)
                         qList_foreach(tmple->ld,iiter){
                             Level2Entry *tmplle = (Level2Entry*)iiter->data;
                             if(tmplle->ld.size != 0){
+                                float tmpremain=99999999.0f;
                                 qList_foreach(tmplle->ld,iiiter){
                                     Level3Entry *le = (Level3Entry*)iiiter->data;
-                                    if(le->data.remain > fepsilon){
-                                        GUICOLUMNNEXT("%s",le->data.carId);
-                                        GUICOLUMNNEXT("%s",tmplle->data.customerName);
-                                        GUICOLUMNNEXT("%.2f",le->data.remain);
+                                    if(le->data.remain < tmpremain){
+                                        tmpremain = le->data.remain;
                                     }
+                                }
+                                if(tmpremain > fepsilon){
+                                    GUICOLUMNNEXT("%s",tmplle->data.carId);
+                                    GUICOLUMNNEXT("%s",tmplle->data.customerName);
+                                    GUICOLUMNNEXT("%.2f",tmpremain);
                                 }
                             }
                         }

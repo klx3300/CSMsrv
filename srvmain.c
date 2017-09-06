@@ -15,7 +15,7 @@
 #include <string.h>
 
 #define STRMASK "PROTECTED"
-#define SHUTDOWN_PASSPHRASE "EMERGENCY_ZHWK_SERVER_SHUTDOWN"
+#define SHUTDOWN_PASSPHRASE "SAVE"
 
 typedef unsigned int ui;
 qListDescriptor *data=NULL,*user=NULL,*group=NULL;
@@ -453,6 +453,7 @@ void* handle_client(void* clisock_x){
                     GroupData tmpgd;
                     tmpgd.gid = apq.groupId;
                     qList_push_back(*group,tmpgd);
+                    FLAG_SUCC = 1;
                 }
                 UNLOCKGROUP;
                 if(FLAG_SUCC){
